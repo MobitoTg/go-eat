@@ -1,0 +1,113 @@
+# Contract: Widget Payload
+
+**Feature**: `001-widget-restaurant-suggestion` | **Date**: 2026-08-14
+
+The contract between the app (writer) and the two widget implementations (readers). This is the
+**only** channel through which widgets receive data.
+
+## Why this contract is strict
+
+Widgets do not run JavaScript. iOS widget views compile to native Swift; Android widgets are
+RemoteViews. Neither can call the network, score candidates, format strings, or convert units.
+
+Anything this payload leaves undone must be implemented **twice** — once in Swift, once in Kotlin —
+and tested on two simulators. So the payload is deliberately over-prepared: every string is
+display-ready, every state is explicit, and nothing requires a decision at render time.
+
+## Transport
+
+| Platform | Mechanism | Key |
+|---|---|---|
+| iOS | App Group shared container | `group.<bundle id>` → `goeat.widget.payload` |
+| Android | `SharedPreferences` | `goeat_widget` → `payload` |
+
+Serialized as JSON. The app writes; the widget reads. Writes MUST be atomic — a widget reload can
+land mid-write, and a half-written payload would render as a blank widget, violating the
+honest-states rule.
+
+## Schema
+
+```jsonc
+{
+  "version": 1,
+  "state": "suggestion",
+  "updatedAt": "2026-08-14T18:22:05Z",
+  "isStale": false,
+  "refreshEnabled": true,
+
+  // Present only when state === "suggestion"
+  "item": {
+    "name": "Bà Mì Deli",
+    "cuisineLabel": "Vietnamese",
+    "ratingLabel": "4.6",
+    "reviewCountLabel": "1.2k",
+    "distanceLabel": "0.4 mi",
+    "listingUrl": "https://www.google.com/maps/place/?q=place_id:ChIJ...",
+    "fallbackUrl": "https://www.google.com/maps/search/?api=1&query=..."
+  }
+}
+```
+
+### Fields
+
+| Field | Type | Notes |
+|---|---|---|
+| `version` | `int` | Payload schema version. A widget reading an unknown version renders `stale` rather than crashing |
+| `state` | `WidgetState` | See below. Exhaustive |
+| `updatedAt` | `ISO8601` | When the payload was written |
+| `isStale` | `boolean` | True when displaying data the app could not refresh. Drives the stale indicator |
+| `refreshEnabled` | `boolean` | False hides the refresh control entirely (FR-019) |
+| `item` | `object \| null` | Non-null **only** when `state === "suggestion"` |
+
+### WidgetState
+
+| Value | Widget renders |
+|---|---|
+| `suggestion` | The restaurant: name, cuisine, rating, distance (FR-002) |
+| `permission_required` | Prompt that opens the app to the permission step |
+| `no_results` | "Nothing worth recommending nearby" |
+| `all_filtered` | Preferences filtered everything out + link into settings |
+| `stale` | Last known item with a stale indicator — never presented as current |
+| `loading` | Brief loading state. **Never a placeholder restaurant** |
+
+Widgets MUST handle every case explicitly. There is no default branch — an unhandled state is a
+blank widget, which the constitution forbids.
+
+## Rules for widget implementations
+
+**Widgets MUST:**
+
+- Render `item` strings verbatim. They are already truncated, rounded, abbreviated, and
+  unit-converted.
+- Render exactly one restaurant (FR-001).
+- Open `listingUrl` on tap, falling back to `fallbackUrl` on failure (FR-023, FR-025).
+- Handle all six states.
+
+**Widgets MUST NOT:**
+
+- Perform network calls, scoring, sorting, formatting, rounding, unit conversion, or URL
+  construction.
+- Read anything beyond this payload.
+- Render a count, position indicator, progress dots, or any hint that other candidates exist
+  (Principle II). The payload carries no sibling data, so this should be unbuildable rather than
+  merely discouraged.
+
+## Refresh interaction
+
+| Platform | Mechanism |
+|---|---|
+| iOS | App Intent bound to the refresh control → advances cursor in shared storage → `reloadTimelines` |
+| Android | Broadcast to the widget provider → advances cursor → `updateAppWidget` |
+
+Both paths run **without launching the app** (FR-005) and **without a network call** when the batch
+is valid (FR-015, FR-021a). The intent handler's entire job is: advance cursor, rewrite payload,
+request reload.
+
+When the batch is invalid, the handler instead triggers a new cycle (FR-020), which does hit the
+network. The widget shows `loading` while that resolves.
+
+## Versioning
+
+`version` is bumped on any breaking field change. Because widget code ships in the app binary, app
+and widget always update together — but a widget can briefly read a payload written by a previous
+app version during an update. Unknown version → render `stale` and let the next cycle correct it.

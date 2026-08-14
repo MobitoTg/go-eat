@@ -1,0 +1,285 @@
+openapi: 3.1.0
+
+info:
+  title: Go-Eat Suggestion API
+  version: 1.0.0
+  description: |
+    Stateless backend for the Go-Eat widget. Owns the Google Places credential, the scoring
+    weights, and the near-tie shuffle. Returns render-ready suggestion batches.
+
+    Design constraints enforced by this contract:
+      - Exactly ONE provider request per POST /v1/cycle (FR-014, FR-015).
+      - No user identity, no accounts, no server-side persistence (FR-032).
+      - Items are returned pre-formatted and pre-ordered; the client never scores,
+        sorts, or formats (widgets cannot run JS).
+      - No suggestion history is stored anywhere (FR-022a).
+
+servers:
+  - url: https://api.go-eat.app
+    description: Production
+  - url: http://localhost:3000
+    description: Local development (simulator/emulator target)
+
+paths:
+  /v1/cycle:
+    post:
+      summary: Start a new suggestion cycle
+      description: |
+        Fetches candidates from the provider in a single call, applies hard filters, scores the
+        survivors, shuffles near-ties using the cycle seed, and returns an ordered, render-ready
+        batch.
+
+        Called ONLY when the client has no valid batch (FR-020). Advancing within an existing
+        batch is a local cursor operation and MUST NOT call this endpoint (FR-021a).
+      operationId: startCycle
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CycleRequest'
+      responses:
+        '200':
+          description: Batch produced. May contain zero items — a legitimate outcome.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CycleResponse'
+        '400':
+          description: Malformed request (bad coordinates, conflicting preference tags)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '429':
+          description: |
+            Per-installation cycle rate limit exceeded. A runaway-cost backstop (research R4),
+            not a product feature. The client MUST render the stale state rather than surfacing
+            this as a user-facing restriction.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '502':
+          description: Provider unavailable or returned an unusable response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /v1/config:
+    get:
+      summary: Client-relevant configuration
+      description: |
+        Returns only the config the client needs to behave correctly. Scoring weights are
+        deliberately NOT exposed — they are operator-owned and never user-visible (Principle II).
+      operationId: getConfig
+      responses:
+        '200':
+          description: Current client configuration
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ClientConfig'
+
+  /health:
+    get:
+      summary: Liveness probe
+      operationId: health
+      responses:
+        '200':
+          description: Service is up
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [status]
+                properties:
+                  status:
+                    type: string
+                    enum: [ok]
+
+components:
+  schemas:
+
+    CycleRequest:
+      type: object
+      required: [lat, lng, installationId, unitSystem]
+      additionalProperties: false
+      properties:
+        lat:
+          type: number
+          minimum: -90
+          maximum: 90
+        lng:
+          type: number
+          minimum: -180
+          maximum: 180
+        installationId:
+          type: string
+          format: uuid
+          description: |
+            Random per-install identifier used ONLY for rate limiting. Not an account, not a
+            user identity, not joined to location in any store, and regenerated on reinstall.
+        unitSystem:
+          type: string
+          enum: [metric, imperial]
+          description: Determines distanceLabel formatting. Widgets cannot convert units.
+        exclusions:
+          type: array
+          default: []
+          items:
+            $ref: '#/components/schemas/DietaryTag'
+          description: Hard filters. Matching venues are removed before scoring (FR-011).
+        preferences:
+          type: array
+          default: []
+          items:
+            $ref: '#/components/schemas/DietaryTag'
+          description: Positive scoring inputs. Must not overlap exclusions.
+        seed:
+          type: string
+          description: |
+            Optional. Supply to reproduce a previous cycle's ordering exactly (FR-022b, SC-014).
+            Omitted in production; used by tests and the golden-fixture suite.
+
+    CycleResponse:
+      type: object
+      required: [cycleId, seed, issuedAt, anchor, items, refreshEnabled, state]
+      additionalProperties: false
+      properties:
+        cycleId:
+          type: string
+          format: uuid
+        seed:
+          type: string
+          description: The seed actually used. Always returned, so any cycle is reproducible.
+        issuedAt:
+          type: string
+          format: date-time
+        anchor:
+          $ref: '#/components/schemas/LocationAnchor'
+        items:
+          type: array
+          maxItems: 5
+          description: |
+            Ordered and render-ready. The client MUST NOT reorder — ordering is a backend
+            concern and client-side sorting would break FR-013 reproducibility.
+          items:
+            $ref: '#/components/schemas/SuggestionItem'
+        refreshEnabled:
+          type: boolean
+          description: |
+            Mirrors backend config (FR-019). When false the client hides the refresh control
+            and never advances the cursor.
+        state:
+          $ref: '#/components/schemas/BatchState'
+
+    BatchState:
+      type: string
+      enum: [suggestion, no_results, all_filtered]
+      description: |
+        Why the batch looks the way it does. `no_results` (nothing nearby met the bar) and
+        `all_filtered` (exclusions removed everything) are deliberately distinct — they call
+        for different user actions and must not be collapsed into one empty state.
+
+    SuggestionItem:
+      type: object
+      required:
+        [providerPlaceId, name, cuisineLabel, ratingLabel, reviewCountLabel,
+         distanceLabel, listingUrl, fallbackUrl]
+      additionalProperties: false
+      description: |
+        Fully formatted for display. The widget performs no formatting, rounding, unit
+        conversion, or URL construction — it cannot, since widgets do not run JS.
+
+        Deliberately EXCLUDES score, rank, and any reference to sibling items, so the widget
+        has no way to render a comparison or hint that alternatives exist (FR-001, Principle II).
+      properties:
+        providerPlaceId:
+          type: string
+        name:
+          type: string
+          maxLength: 60
+          description: Pre-truncated to the widget display budget.
+        cuisineLabel:
+          type: string
+          maxLength: 30
+          description: Human-readable, derived from provider types. Never a raw enum.
+          examples: ['Vietnamese', 'Poke', 'Mediterranean']
+        ratingLabel:
+          type: string
+          examples: ['4.6']
+        reviewCountLabel:
+          type: string
+          examples: ['1.2k', '318']
+        distanceLabel:
+          type: string
+          description: Pre-formatted in the requested unit system.
+          examples: ['0.4 mi', '650 m']
+        listingUrl:
+          type: string
+          format: uri
+          description: Primary deep link to the provider listing page (FR-023).
+        fallbackUrl:
+          type: string
+          format: uri
+          description: Used when the primary link fails to resolve (FR-025).
+
+    LocationAnchor:
+      type: object
+      required: [lat, lng, capturedAt]
+      additionalProperties: false
+      properties:
+        lat:
+          type: number
+        lng:
+          type: number
+        capturedAt:
+          type: string
+          format: date-time
+
+    ClientConfig:
+      type: object
+      required:
+        [refreshEnabled, batchSize, locationDriftThresholdMeters,
+         anchorFreshnessSeconds, batchTrustSeconds]
+      additionalProperties: false
+      properties:
+        refreshEnabled:
+          type: boolean
+          description: FR-019 switch. False yields a single-suggestion, no-refresh widget.
+        batchSize:
+          type: integer
+          minimum: 1
+          maximum: 5
+          default: 5
+        locationDriftThresholdMeters:
+          type: number
+          description: Drift beyond this invalidates the active batch (FR-021).
+        anchorFreshnessSeconds:
+          type: number
+          description: Anchor older than this is stale; widget renders the stale state.
+        batchTrustSeconds:
+          type: number
+          description: |
+            After this, open/closed data is no longer trusted and the batch is invalidated
+            (FR-021), preventing a closed venue being shown as open.
+
+    DietaryTag:
+      type: string
+      enum:
+        [vegetarian, vegan, halal, kosher, gluten_free, dairy_free,
+         nut_free, shellfish_free, pescatarian]
+
+    Error:
+      type: object
+      required: [code, message]
+      additionalProperties: false
+      properties:
+        code:
+          type: string
+          enum: [bad_request, rate_limited, provider_unavailable, internal]
+        message:
+          type: string
+          description: Diagnostic text for developers. NEVER rendered in the widget.
