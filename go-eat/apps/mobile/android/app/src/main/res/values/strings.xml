@@ -1,0 +1,4 @@
+<resources>
+  <string name="app_name">Go-Eat</string>
+  <string name="widget_goeat_description" translatable="false">One restaurant. No list.</string>
+</resources>
