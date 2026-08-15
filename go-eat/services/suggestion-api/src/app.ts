@@ -4,6 +4,7 @@ import type { AppConfig } from './config/index.js';
 import { loadConfig } from './config/index.js';
 import { toEnvelope } from './lib/errors.js';
 import { configRoutes } from './routes/config.js';
+import { cycleRoutes } from './routes/cycle-routes.js';
 import { healthRoutes } from './routes/health.js';
 
 /**
@@ -48,6 +49,7 @@ export function buildApp(options: BuildOptions = {}): FastifyInstance {
 
   void app.register(healthRoutes);
   void app.register(async (instance) => configRoutes(instance, config));
+  void app.register(cycleRoutes);
 
   return app;
 }

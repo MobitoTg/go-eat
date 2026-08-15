@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- T051: All filtered state layout -->
+<FrameLayout
+  xmlns:android="http://schemas.android.com/apk/res/android"
+  android:layout_width="match_parent"
+  android:layout_height="match_parent"
+  android:background="@color/surface_base"
+  android:padding="16dp">
+
+  <LinearLayout
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:gravity="top|start"
+    android:spacing="6dp">
+
+    <TextView
+      android:layout_width="match_parent"
+      android:layout_height="wrap_content"
+      android:text="⚙ All preferences filtered out"
+      android:textSize="14sp"
+      android:textColor="@color/text_secondary"
+      android:layout_marginBottom="6dp" />
+
+    <TextView
+      android:layout_width="match_parent"
+      android:layout_height="wrap_content"
+      android:text="Adjust settings in the app"
+      android:textSize="12sp"
+      android:textColor="@color/text_tertiary" />
+
+  </LinearLayout>
+
+</FrameLayout>
