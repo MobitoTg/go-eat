@@ -47,14 +47,14 @@ FR-022b numbering.
 
 **Purpose**: Monorepo initialization and tooling
 
-- [ ] T001 Create the monorepo workspace layout (`apps/mobile/`, `packages/selection-core/`, `packages/contract-types/`, `services/suggestion-api/`) and root `package.json` with npm workspaces, per plan.md
-- [ ] T002 [P] Add shared TypeScript config in `tsconfig.base.json` (TS 5.x, strict) plus a per-workspace `tsconfig.json` in each of the four workspaces
-- [ ] T003 [P] Configure ESLint and Prettier in `.eslintrc.cjs` and `.prettierrc`
-- [ ] T004 [P] Configure Jest for the Node-only workspaces in `packages/selection-core/jest.config.js` and `services/suggestion-api/jest.config.js`
-- [ ] T005 [P] Create `services/suggestion-api/.env.example` with `GOOGLE_PLACES_API_KEY` and `PORT`, documenting that the key never leaves the backend
-- [ ] T006 [P] Create `apps/mobile/.env.example` with `EXPO_PUBLIC_API_URL` and the iOS Simulator (`localhost`) vs Android emulator (`10.0.2.2`) note from quickstart.md
-- [ ] T007 Add root `package.json` scripts (`dev`, `test`, `fixtures:report`, `ios`, `android`, `tokens:generate`, `contrast:gate`) matching the commands documented in quickstart.md
-- [ ] T007a Add the CI workflow in `.github/workflows/ci.yml` running lint, both Jest suites, and the contrast gate — Principle VI.5 requires the gate to run in CI, and no CI exists yet
+- [X] T001 Create the monorepo workspace layout (`apps/mobile/`, `packages/selection-core/`, `packages/contract-types/`, `services/suggestion-api/`) and root `package.json` with npm workspaces, per plan.md
+- [X] T002 [P] Add shared TypeScript config in `tsconfig.base.json` (TS 5.x, strict) plus a per-workspace `tsconfig.json` in each of the four workspaces
+- [X] T003 [P] Configure ESLint and Prettier in `.eslintrc.cjs` and `.prettierrc`
+- [X] T004 [P] Configure Jest for the Node-only workspaces in `packages/selection-core/jest.config.js` and `services/suggestion-api/jest.config.js`
+- [X] T005 [P] Create `services/suggestion-api/.env.example` with `GOOGLE_PLACES_API_KEY` and `PORT`, documenting that the key never leaves the backend
+- [X] T006 [P] Create `apps/mobile/.env.example` with `EXPO_PUBLIC_API_URL` and the iOS Simulator (`localhost`) vs Android emulator (`10.0.2.2`) note from quickstart.md
+- [X] T007 Add root `package.json` scripts (`dev`, `test`, `fixtures:report`, `ios`, `android`, `tokens:generate`, `contrast:gate`) matching the commands documented in quickstart.md
+- [X] T007a Add the CI workflow in `.github/workflows/ci.yml` running lint, both Jest suites, and the contrast gate — Principle VI.5 requires the gate to run in CI, and no CI exists yet
 
 ---
 
@@ -64,43 +64,43 @@ FR-022b numbering.
 
 **⚠️ CRITICAL**: No user story work can begin until this phase is complete
 
-- [ ] T008 **GATE** Verify current Google Places API (New) pricing, per-SKU free-call allowances, and Places content caching/retention terms; record the outcome in `specs/001-widget-restaurant-suggestion/research.md` under R3. **Blocks T025** — no provider code before this resolves
-- [ ] T009 [P] Define API contract types (CycleRequest, CycleResponse, SuggestionItem, BatchState, ClientConfig, LocationAnchor, DietaryTag, Error) in `packages/contract-types/src/suggestion-api.ts` from `contracts/suggestion-api.yaml`
-- [ ] T010 [P] Define widget payload types (WidgetPayload, the six-case WidgetState union, `PAYLOAD_VERSION = 1`) in `packages/contract-types/src/widget-payload.ts` per `contracts/widget-payload.md`
-- [ ] T011 [P] Add the export barrel in `packages/contract-types/src/index.ts`
-- [ ] T012 [P] Define core domain types (RestaurantCandidate, ScoringWeights, ScoredCandidate) in `packages/selection-core/src/types.ts` per data-model.md
-- [ ] T013 [P] Implement a seeded deterministic PRNG in `packages/selection-core/src/rng.ts` — `Math.random` is prohibited anywhere in this package (Principle IV)
-- [ ] T013a [P] Create `packages/design-tokens` and load the pinned Open Color primitives from `specs/design-system/color-primitives.json` into `packages/design-tokens/src/primitives.ts` — the only place in the repo where hex literals are permitted (VI.1, VI.2)
-- [ ] T013b [P] Encode the semantic token map for both themes as data in `packages/design-tokens/src/semantics.ts`, transcribed from `specs/design-system/color-semantics.md` including the recorded ratios (VI.3)
-- [ ] T013c Implement WCAG relative-luminance and contrast-ratio computation in `packages/design-tokens/src/contrast.ts`
-- [ ] T013d **GATE** Implement the blocking contrast gate in `packages/design-tokens/__tests__/contrast-gate.test.ts` — recompute every pairing from the primitives for BOTH themes, assert text ≥ 4.5:1, large/bold ≥ 3:1, interactive and meaningful non-text boundaries ≥ 3:1, and assert each recorded ratio matches the computed value (VI.5, FR-035, SC-015). **Blocks all widget UI work**
-- [ ] T013e **ADR** Record the Android dynamic-color decision (research R10 — fixed Open Color palette in v1, dynamic color deferred) in `specs/design-system/adr-001-android-dynamic-color.md`, including why the hybrid fails: surfaces are the reference side of every contrast pairing, and RemoteViews cannot resolve contrast at runtime. **Blocks T013g**
-- [ ] T013f [P] Implement the iOS Asset Catalog generator in `packages/design-tokens/generators/ios-asset-catalog.ts` — one Color Set per SEMANTIC token with Any/Dark variants; primitives never ship to the bundle
-- [ ] T013g Implement the Android generator in `packages/design-tokens/generators/android-colors.ts` emitting `res/values/colors.xml` and `res/values-night/colors.xml` from the fixed semantic map with no system-palette branch (T013e ADR); confirm each token's target attribute is settable via RemoteViews before specifying it
-- [ ] T013h [P] Implement the no-raw-hex and no-primitive-reference lint rules in `packages/design-tokens/eslint-rules/` and register them so a violation fails the build (VI.1, FR-034)
-- [ ] T013i Wire `tokens:generate` into the mobile build so platform color assets regenerate from the semantic map rather than being hand-maintained
-- [ ] T013j [P] Vendor `open-color@1.9.1` pinned and record the MIT notice in `THIRD_PARTY.md` — VI.2 pins the version, and the license requires attribution (FR-041)
-- [ ] T013k [P] Export semantic tokens as a TypeScript module in `packages/design-tokens/src/tokens.ts` for the React Native app surfaces (onboarding, preferences), which are styled in JS and cannot consume the native asset catalogs
-- [ ] T014 Implement the hard-filter pipeline in fixed order (businessStatus ≠ OPERATIONAL → `openNow === false` → user exclusions) in `packages/selection-core/src/filters.ts` (FR-011, FR-012)
-- [ ] T015 Define the public ordering surface `orderCandidates(candidates, weights, preferences, seed)` in `packages/selection-core/src/index.ts`, with a deterministic baseline ordering as the seam US2 replaces
-- [ ] T016 [P] Test that hard filters run before ordering and excluded venues never reach the shuffle in `packages/selection-core/__tests__/filters.test.ts` (SC-009)
-- [ ] T017 [P] Test seeded PRNG determinism and absence of `Math.random` in `packages/selection-core/__tests__/rng.test.ts`
-- [ ] T018 Create the Fastify application skeleton in `services/suggestion-api/src/app.ts` and `services/suggestion-api/src/server.ts`
-- [ ] T019 [P] Implement operator config loading (weights, nearTieThreshold, searchRadiusMeters, minReviewCount, batchSize, refreshEnabled, drift/freshness/trust thresholds) in `services/suggestion-api/src/config/index.ts`
-- [ ] T020 [P] Implement coarse-coordinate log truncation in `services/suggestion-api/src/lib/logging.ts` so full-precision coordinates are never logged (Principle V)
-- [ ] T021 [P] Implement the error envelope (codes `bad_request`, `rate_limited`, `provider_unavailable`, `internal`) in `services/suggestion-api/src/lib/errors.ts`
-- [ ] T022 Implement `GET /health` in `services/suggestion-api/src/routes/health.ts`
-- [ ] T023 Implement `GET /v1/config` returning ClientConfig in `services/suggestion-api/src/routes/config.ts` — scoring weights MUST NOT be exposed (Principle II)
-- [ ] T024 [P] Contract test asserting `GET /v1/config` conforms to the schema and leaks no scoring weights, in `services/suggestion-api/__tests__/config.contract.test.ts`
-- [ ] T025 Implement the Google Places (New) Nearby Search adapter in `services/suggestion-api/src/provider/places.ts` — exactly one request per invocation, key read from env only (depends on T008)
-- [ ] T026 [P] Record provider response fixtures for dense-urban, suburban, and sparse-rural coordinates in `services/suggestion-api/__tests__/fixtures/`
+- [X] T008 **GATE** Verify current Google Places API (New) pricing, per-SKU free-call allowances, and Places content caching/retention terms; record the outcome in `specs/001-widget-restaurant-suggestion/research.md` under R3. **Blocks T025** — no provider code before this resolves
+- [X] T009 [P] Define API contract types (CycleRequest, CycleResponse, SuggestionItem, BatchState, ClientConfig, LocationAnchor, DietaryTag, Error) in `packages/contract-types/src/suggestion-api.ts` from `contracts/suggestion-api.yaml`
+- [X] T010 [P] Define widget payload types (WidgetPayload, the six-case WidgetState union, `PAYLOAD_VERSION = 1`) in `packages/contract-types/src/widget-payload.ts` per `contracts/widget-payload.md`
+- [X] T011 [P] Add the export barrel in `packages/contract-types/src/index.ts`
+- [X] T012 [P] Define core domain types (RestaurantCandidate, ScoringWeights, ScoredCandidate) in `packages/selection-core/src/types.ts` per data-model.md
+- [X] T013 [P] Implement a seeded deterministic PRNG in `packages/selection-core/src/rng.ts` — `Math.random` is prohibited anywhere in this package (Principle IV)
+- [X] T013a [P] Create `packages/design-tokens` and load the pinned Open Color primitives from `specs/design-system/color-primitives.json` into `packages/design-tokens/src/primitives.ts` — the only place in the repo where hex literals are permitted (VI.1, VI.2)
+- [X] T013b [P] Encode the semantic token map for both themes as data in `packages/design-tokens/src/semantics.ts`, transcribed from `specs/design-system/color-semantics.md` including the recorded ratios (VI.3)
+- [X] T013c Implement WCAG relative-luminance and contrast-ratio computation in `packages/design-tokens/src/contrast.ts`
+- [X] T013d **GATE** Implement the blocking contrast gate in `packages/design-tokens/__tests__/contrast-gate.test.ts` — recompute every pairing from the primitives for BOTH themes, assert text ≥ 4.5:1, large/bold ≥ 3:1, interactive and meaningful non-text boundaries ≥ 3:1, and assert each recorded ratio matches the computed value (VI.5, FR-035, SC-015). **Blocks all widget UI work**
+- [X] T013e **ADR** Record the Android dynamic-color decision (research R10 — fixed Open Color palette in v1, dynamic color deferred) in `specs/design-system/adr-001-android-dynamic-color.md`, including why the hybrid fails: surfaces are the reference side of every contrast pairing, and RemoteViews cannot resolve contrast at runtime. **Blocks T013g**
+- [X] T013f [P] Implement the iOS Asset Catalog generator in `packages/design-tokens/generators/ios-asset-catalog.ts` — one Color Set per SEMANTIC token with Any/Dark variants; primitives never ship to the bundle
+- [X] T013g Implement the Android generator in `packages/design-tokens/generators/android-colors.ts` emitting `res/values/colors.xml` and `res/values-night/colors.xml` from the fixed semantic map with no system-palette branch (T013e ADR); confirm each token's target attribute is settable via RemoteViews before specifying it
+- [X] T013h [P] Implement the no-raw-hex and no-primitive-reference lint rules in `packages/design-tokens/eslint-rules/` and register them so a violation fails the build (VI.1, FR-034)
+- [X] T013i Wire `tokens:generate` into the mobile build so platform color assets regenerate from the semantic map rather than being hand-maintained
+- [X] T013j [P] Vendor `open-color@1.9.1` pinned and record the MIT notice in `THIRD_PARTY.md` — VI.2 pins the version, and the license requires attribution (FR-041)
+- [X] T013k [P] Export semantic tokens as a TypeScript module in `packages/design-tokens/src/tokens.ts` for the React Native app surfaces (onboarding, preferences), which are styled in JS and cannot consume the native asset catalogs
+- [X] T014 Implement the hard-filter pipeline in fixed order (businessStatus ≠ OPERATIONAL → `openNow === false` → user exclusions) in `packages/selection-core/src/filters.ts` (FR-011, FR-012)
+- [X] T015 Define the public ordering surface `orderCandidates(candidates, weights, preferences, seed)` in `packages/selection-core/src/index.ts`, with a deterministic baseline ordering as the seam US2 replaces
+- [X] T016 [P] Test that hard filters run before ordering and excluded venues never reach the shuffle in `packages/selection-core/__tests__/filters.test.ts` (SC-009)
+- [X] T017 [P] Test seeded PRNG determinism and absence of `Math.random` in `packages/selection-core/__tests__/rng.test.ts`
+- [X] T018 Create the Fastify application skeleton in `services/suggestion-api/src/app.ts` and `services/suggestion-api/src/server.ts`
+- [X] T019 [P] Implement operator config loading (weights, nearTieThreshold, searchRadiusMeters, minReviewCount, batchSize, refreshEnabled, drift/freshness/trust thresholds) in `services/suggestion-api/src/config/index.ts`
+- [X] T020 [P] Implement coarse-coordinate log truncation in `services/suggestion-api/src/lib/logging.ts` so full-precision coordinates are never logged (Principle V)
+- [X] T021 [P] Implement the error envelope (codes `bad_request`, `rate_limited`, `provider_unavailable`, `internal`) in `services/suggestion-api/src/lib/errors.ts`
+- [X] T022 Implement `GET /health` in `services/suggestion-api/src/routes/health.ts`
+- [X] T023 Implement `GET /v1/config` returning ClientConfig in `services/suggestion-api/src/routes/config.ts` — scoring weights MUST NOT be exposed (Principle II)
+- [X] T024 [P] Contract test asserting `GET /v1/config` conforms to the schema and leaks no scoring weights, in `services/suggestion-api/__tests__/config.contract.test.ts`
+- [X] T025 Implement the Google Places (New) Nearby Search adapter in `services/suggestion-api/src/provider/places.ts` — exactly one request per invocation, key read from env only (depends on T008)
+- [X] T026 [P] Record provider response fixtures for dense-urban, suburban, and sparse-rural coordinates in `services/suggestion-api/__tests__/fixtures/`
 - [ ] T027 [P] Initialize the Expo app (SDK 57+, New Architecture, expo-router) in `apps/mobile/`
-- [ ] T028 Configure both widget config plugins in `apps/mobile/app.config.ts`: `expo-widgets` with App Group `group.<bundle id>` (iOS) and `react-native-android-widget` with SharedPreferences `goeat_widget` (Android), per `contracts/widget-payload.md`
-- [ ] T029 [P] Implement the atomic shared-storage bridge in `apps/mobile/src/storage/shared-storage.ts` — writes must be atomic so a widget reload never reads a half-written payload
-- [ ] T030 [P] Implement the expo-location wrapper (permission state, anchor capture) in `apps/mobile/src/location/index.ts`
-- [ ] T031 [P] Implement pure invalidation predicates (`isStale`, `hasDrifted`, preferences-hash mismatch, batch trust window) in `apps/mobile/src/cycle/invalidation.ts` using the R12 thresholds — `anchorFreshnessSeconds` 900, `locationDriftThresholdMeters` 750, `batchTrustSeconds` 1800 (FR-021)
-- [ ] T031a [P] Guard test asserting the location anchor is overwritten and never appended to, that no coordinate is written to device storage outside the active batch, and that `batchTrustSeconds > anchorFreshnessSeconds` holds, in `apps/mobile/__tests__/no-location-history.test.ts` (FR-031, Principle V)
-- [ ] T032 [P] Implement the suggestion-api client in `apps/mobile/src/api/suggestion-api.ts`
+- [X] T028 Configure both widget config plugins in `apps/mobile/app.config.ts`: `expo-widgets` with App Group `group.<bundle id>` (iOS) and `react-native-android-widget` with SharedPreferences `goeat_widget` (Android), per `contracts/widget-payload.md`
+- [X] T029 [P] Implement the atomic shared-storage bridge in `apps/mobile/src/storage/shared-storage.ts` — writes must be atomic so a widget reload never reads a half-written payload
+- [X] T030 [P] Implement the expo-location wrapper (permission state, anchor capture) in `apps/mobile/src/location/index.ts`
+- [X] T031 [P] Implement pure invalidation predicates (`isStale`, `hasDrifted`, preferences-hash mismatch, batch trust window) in `apps/mobile/src/cycle/invalidation.ts` using the R12 thresholds — `anchorFreshnessSeconds` 900, `locationDriftThresholdMeters` 750, `batchTrustSeconds` 1800 (FR-021)
+- [X] T031a [P] Guard test asserting the location anchor is overwritten and never appended to, that no coordinate is written to device storage outside the active batch, and that `batchTrustSeconds > anchorFreshnessSeconds` holds, in `apps/mobile/__tests__/no-location-history.test.ts` (FR-031, Principle V)
+- [X] T032 [P] Implement the suggestion-api client in `apps/mobile/src/api/suggestion-api.ts`
 - [ ] T033 **SPIKE** Prove whether a widget refresh can obtain a sufficiently fresh location anchor without foregrounding the app, on a device development build; record the outcome in research.md under R7. Blocks widget UI polish only — not backend, selection-core, or app-shell work
 
 **Checkpoint**: Foundation ready — user story implementation can now begin

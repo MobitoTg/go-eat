@@ -1,0 +1,17 @@
+{
+  "name": "@go-eat/selection-core",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": { ".": "./src/index.ts" },
+  "scripts": {
+    "test": "jest",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "fixtures:report": "tsx scripts/fixtures-report.ts"
+  },
+  "dependencies": {
+    "@go-eat/contract-types": "*"
+  }
+}

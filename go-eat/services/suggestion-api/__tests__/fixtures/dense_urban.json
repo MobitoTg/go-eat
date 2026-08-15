@@ -1,0 +1,438 @@
+{
+  "_fixture": {
+    "profile": "dense_urban",
+    "description": "Seattle, Pike Place — dense urban. Full batch, wide quality range.",
+    "anchor": {
+      "lat": 47.6097,
+      "lng": -122.3331
+    },
+    "note": "Recorded shape of a Places API (New) searchNearby response for the field mask in src/provider/places.ts. Hand-authored rather than captured live: a captured response would embed real business data subject to the 30-day Places caching limit (research R3a), and fixtures must be permanent."
+  },
+  "places": [
+    {
+      "id": "ChIJ_dense_urban_00",
+      "displayName": {
+        "text": "Bà Mì Deli"
+      },
+      "types": [
+        "hamburger_restaurant",
+        "fast_food_restaurant",
+        "restaurant"
+      ],
+      "primaryType": "hamburger_restaurant",
+      "location": {
+        "latitude": 47.61129,
+        "longitude": -122.327149
+      },
+      "businessStatus": "OPERATIONAL",
+      "rating": 3.9,
+      "userRatingCount": 772,
+      "currentOpeningHours": {
+        "openNow": true
+      }
+    },
+    {
+      "id": "ChIJ_dense_urban_01",
+      "displayName": {
+        "text": "Green Fork"
+      },
+      "types": [
+        "sandwich_shop",
+        "restaurant"
+      ],
+      "primaryType": "sandwich_shop",
+      "location": {
+        "latitude": 47.61363,
+        "longitude": -122.330227
+      },
+      "businessStatus": "OPERATIONAL",
+      "rating": 4.7,
+      "userRatingCount": 1737,
+      "currentOpeningHours": {
+        "openNow": true
+      }
+    },
+    {
+      "id": "ChIJ_dense_urban_02",
+      "displayName": {
+        "text": "Harbour Sushi"
+      },
+      "types": [
+        "pizza_restaurant",
+        "restaurant"
+      ],
+      "primaryType": "pizza_restaurant",
+      "location": {
+        "latitude": 47.606207,
+        "longitude": -122.329649
+      },
+      "businessStatus": "OPERATIONAL",
+      "rating": 4.8,
+      "userRatingCount": 601,
+      "currentOpeningHours": {
+        "openNow": false
+      }
+    },
+    {
+      "id": "ChIJ_dense_urban_03",
+      "displayName": {
+        "text": "Olive & Thyme"
+      },
+      "types": [
+        "mediterranean_restaurant",
+        "restaurant"
+      ],
+      "primaryType": "mediterranean_restaurant",
+      "location": {
+        "latitude": 47.608092,
+        "longitude": -122.335748
+      },
+      "businessStatus": "OPERATIONAL",
+      "rating": 4.9,
+      "userRatingCount": 1795,
+      "currentOpeningHours": {
+        "openNow": true
+      }
+    },
+    {
+      "id": "ChIJ_dense_urban_04",
+      "displayName": {
+        "text": "The Daily Grind"
+      },
+      "types": [
+        "mediterranean_restaurant",
+        "restaurant"
+      ],
+      "primaryType": "mediterranean_restaurant",
+      "location": {
+        "latitude": 47.613536,
+        "longitude": -122.337027
+      },
+      "businessStatus": "OPERATIONAL",
+      "rating": 3.9,
+      "userRatingCount": 1069,
+      "currentOpeningHours": {
+        "openNow": true
+      }
+    },
+    {
+      "id": "ChIJ_dense_urban_05",
+      "displayName": {
+        "text": "Nonna Pizzeria"
+      },
+      "types": [
+        "pizza_restaurant",
+        "restaurant"
+      ],
+      "primaryType": "pizza_restaurant",
+      "location": {
+        "latitude": 47.60931,
+        "longitude": -122.330058
+      },
+      "businessStatus": "OPERATIONAL",
+      "rating": 4.1,
+      "userRatingCount": 2375,
+      "currentOpeningHours": {
+        "openNow": true
+      }
+    },
+    {
+      "id": "ChIJ_dense_urban_06",
+      "displayName": {
+        "text": "Burger Yard"
+      },
+      "types": [
+        "sandwich_shop",
+        "restaurant"
+      ],
+      "primaryType": "sandwich_shop",
+      "location": {
+        "latitude": 47.61013,
+        "longitude": -122.328941
+      },
+      "businessStatus": "OPERATIONAL",
+      "rating": 3.6,
+      "userRatingCount": 779,
+      "currentOpeningHours": {
+        "openNow": true
+      }
+    },
+    {
+      "id": "ChIJ_dense_urban_07",
+      "displayName": {
+        "text": "Quick Bite"
+      },
+      "types": [
+        "vegan_restaurant",
+        "restaurant"
+      ],
+      "primaryType": "vegan_restaurant",
+      "location": {
+        "latitude": 47.608495,
+        "longitude": -122.330704
+      },
+      "businessStatus": "OPERATIONAL",
+      "rating": 4,
+      "userRatingCount": 1698,
+      "currentOpeningHours": {
+        "openNow": true
+      }
+    },
+    {
+      "id": "ChIJ_dense_urban_08",
+      "displayName": {
+        "text": "Salt & Stone"
+      },
+      "types": [
+        "mediterranean_restaurant",
+        "restaurant"
+      ],
+      "primaryType": "mediterranean_restaurant",
+      "location": {
+        "latitude": 47.608866,
+        "longitude": -122.338826
+      },
+      "businessStatus": "OPERATIONAL",
+      "rating": 3.6,
+      "userRatingCount": 2306,
+      "currentOpeningHours": {
+        "openNow": true
+      }
+    },
+    {
+      "id": "ChIJ_dense_urban_09",
+      "displayName": {
+        "text": "Cedar Kitchen"
+      },
+      "types": [
+        "vegan_restaurant",
+        "restaurant"
+      ],
+      "primaryType": "vegan_restaurant",
+      "location": {
+        "latitude": 47.607067,
+        "longitude": -122.334086
+      },
+      "businessStatus": "OPERATIONAL",
+      "rating": 4.7,
+      "userRatingCount": 727,
+      "currentOpeningHours": {
+        "openNow": true
+      }
+    },
+    {
+      "id": "ChIJ_dense_urban_10",
+      "displayName": {
+        "text": "Blue Plate"
+      },
+      "types": [
+        "pizza_restaurant",
+        "restaurant"
+      ],
+      "primaryType": "pizza_restaurant",
+      "location": {
+        "latitude": 47.61106,
+        "longitude": -122.330707
+      },
+      "businessStatus": "CLOSED_PERMANENTLY",
+      "rating": 4.1,
+      "userRatingCount": 2075,
+      "currentOpeningHours": {
+        "openNow": true
+      }
+    },
+    {
+      "id": "ChIJ_dense_urban_11",
+      "displayName": {
+        "text": "Marisco"
+      },
+      "types": [
+        "hamburger_restaurant",
+        "fast_food_restaurant",
+        "restaurant"
+      ],
+      "primaryType": "hamburger_restaurant",
+      "location": {
+        "latitude": 47.609556,
+        "longitude": -122.327649
+      },
+      "businessStatus": "OPERATIONAL",
+      "rating": 3.7,
+      "userRatingCount": 740,
+      "currentOpeningHours": {
+        "openNow": true
+      }
+    },
+    {
+      "id": "ChIJ_dense_urban_12",
+      "displayName": {
+        "text": "Farm Table"
+      },
+      "types": [
+        "hamburger_restaurant",
+        "fast_food_restaurant",
+        "restaurant"
+      ],
+      "primaryType": "hamburger_restaurant",
+      "location": {
+        "latitude": 47.611378,
+        "longitude": -122.331313
+      },
+      "businessStatus": "OPERATIONAL",
+      "rating": 4,
+      "userRatingCount": 74,
+      "currentOpeningHours": {
+        "openNow": true
+      }
+    },
+    {
+      "id": "ChIJ_dense_urban_13",
+      "displayName": {
+        "text": "Noodle Bar"
+      },
+      "types": [
+        "sushi_restaurant",
+        "japanese_restaurant",
+        "restaurant"
+      ],
+      "primaryType": "sushi_restaurant",
+      "location": {
+        "latitude": 47.615645,
+        "longitude": -122.333186
+      },
+      "businessStatus": "OPERATIONAL",
+      "rating": 4.3,
+      "userRatingCount": 1943,
+      "currentOpeningHours": {
+        "openNow": true
+      }
+    },
+    {
+      "id": "ChIJ_dense_urban_14",
+      "displayName": {
+        "text": "Copper Pot"
+      },
+      "types": [
+        "sandwich_shop",
+        "restaurant"
+      ],
+      "primaryType": "sandwich_shop",
+      "location": {
+        "latitude": 47.612016,
+        "longitude": -122.338065
+      },
+      "businessStatus": "OPERATIONAL",
+      "rating": 3.5,
+      "userRatingCount": 1413,
+      "currentOpeningHours": {
+        "openNow": true
+      }
+    },
+    {
+      "id": "ChIJ_dense_urban_15",
+      "displayName": {
+        "text": "Rye & Co"
+      },
+      "types": [
+        "mediterranean_restaurant",
+        "restaurant"
+      ],
+      "primaryType": "mediterranean_restaurant",
+      "location": {
+        "latitude": 47.607417,
+        "longitude": -122.32877
+      },
+      "businessStatus": "OPERATIONAL",
+      "rating": 4.7,
+      "userRatingCount": 1970,
+      "currentOpeningHours": {
+        "openNow": true
+      }
+    },
+    {
+      "id": "ChIJ_dense_urban_16",
+      "displayName": {
+        "text": "The Anchovy"
+      },
+      "types": [
+        "mediterranean_restaurant",
+        "restaurant"
+      ],
+      "primaryType": "mediterranean_restaurant",
+      "location": {
+        "latitude": 47.60757,
+        "longitude": -122.330599
+      },
+      "businessStatus": "OPERATIONAL",
+      "rating": 4.7,
+      "userRatingCount": 61,
+      "currentOpeningHours": {
+        "openNow": true
+      }
+    },
+    {
+      "id": "ChIJ_dense_urban_17",
+      "displayName": {
+        "text": "Sprout"
+      },
+      "types": [
+        "pizza_restaurant",
+        "restaurant"
+      ],
+      "primaryType": "pizza_restaurant",
+      "location": {
+        "latitude": 47.607388,
+        "longitude": -122.339032
+      },
+      "businessStatus": "OPERATIONAL",
+      "rating": 4.2,
+      "userRatingCount": 2104,
+      "currentOpeningHours": {
+        "openNow": true
+      }
+    },
+    {
+      "id": "ChIJ_dense_urban_18",
+      "displayName": {
+        "text": "Ember Grill"
+      },
+      "types": [
+        "hamburger_restaurant",
+        "fast_food_restaurant",
+        "restaurant"
+      ],
+      "primaryType": "hamburger_restaurant",
+      "location": {
+        "latitude": 47.609557,
+        "longitude": -122.331231
+      },
+      "businessStatus": "OPERATIONAL",
+      "rating": 3.9,
+      "userRatingCount": 1653,
+      "currentOpeningHours": {
+        "openNow": true
+      }
+    },
+    {
+      "id": "ChIJ_dense_urban_19",
+      "displayName": {
+        "text": "Little Hanoi"
+      },
+      "types": [
+        "pizza_restaurant",
+        "restaurant"
+      ],
+      "primaryType": "pizza_restaurant",
+      "location": {
+        "latitude": 47.611816,
+        "longitude": -122.33379
+      },
+      "businessStatus": "OPERATIONAL",
+      "rating": 4.5,
+      "userRatingCount": 551,
+      "currentOpeningHours": {
+        "openNow": true
+      }
+    }
+  ]
+}

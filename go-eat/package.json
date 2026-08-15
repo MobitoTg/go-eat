@@ -1,0 +1,41 @@
+{
+  "name": "go-eat",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Go-Eat — a home screen widget that tells you where to eat",
+  "license": "UNLICENSED",
+  "engines": {
+    "node": ">=22"
+  },
+  "workspaces": [
+    "apps/*",
+    "packages/*",
+    "services/*",
+    "packages/design-tokens/eslint-rules"
+  ],
+  "scripts": {
+    "dev": "npm run dev --workspace=services/suggestion-api",
+    "test": "npm run test --workspaces --if-present",
+    "lint": "eslint .",
+    "typecheck": "tsc --build",
+    "fixtures:report": "npm run fixtures:report --workspace=packages/selection-core",
+    "ios": "npm run ios --workspace=apps/mobile",
+    "android": "npm run android --workspace=apps/mobile",
+    "tokens:generate": "npm run tokens:generate --workspace=packages/design-tokens",
+    "contrast:gate": "npm run contrast:gate --workspace=packages/design-tokens",
+    "check:secrets": "tsx scripts/check-no-client-secrets.ts",
+    "check:provider": "tsx scripts/check-single-provider.ts"
+  },
+  "devDependencies": {
+    "@types/jest": "^29.5.14",
+    "@types/node": "^22.10.2",
+    "@typescript-eslint/eslint-plugin": "^8.18.0",
+    "@typescript-eslint/parser": "^8.18.0",
+    "eslint": "^8.57.1",
+    "jest": "^29.7.0",
+    "prettier": "^3.4.2",
+    "ts-jest": "^29.2.5",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.2"
+  }
+}

@@ -1,0 +1,10 @@
+node_modules/
+dist/
+build/
+coverage/
+.expo/
+package-lock.json
+# Generated platform color assets are outputs of tokens:generate — never hand-formatted.
+apps/mobile/ios/
+apps/mobile/android/
+**/generated/**

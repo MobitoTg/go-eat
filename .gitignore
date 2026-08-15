@@ -1,0 +1,47 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+build/
+*.tsbuildinfo
+
+# Environment — the Google Places key lives in services/suggestion-api/.env and must never be
+# committed (Constitution V). Only the .env.example templates are tracked.
+.env
+.env.*
+!.env.example
+
+# Test output
+coverage/
+
+# Expo / React Native
+.expo/
+.expo-shared/
+apps/mobile/ios/
+apps/mobile/android/
+*.jks
+*.p8
+*.p12
+*.key
+*.mobileprovision
+*.orig.*
+
+# Native build artifacts
+DerivedData/
+*.xcworkspace/xcuserdata/
+.gradle/
+local.properties
+
+# Logs
+*.log
+npm-debug.log*
+yarn-error.log*
+
+# Editor / OS
+.DS_Store
+Thumbs.db
+*.swp
+*.tmp
+.idea/
+.vscode/

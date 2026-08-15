@@ -83,8 +83,11 @@ platform-imposed rather than chosen, and are recorded there for transparency.
 
 **Three gates carried into implementation** (none blocks Phase 1 design):
 
-1. **Places API pricing and terms unverified** (R3). Must be confirmed before provider code is
-   written — it validates the cost model and the caching/retention posture.
+1. **Places API pricing and terms** (R3). **RESOLVED 2026-08-14.** Nearby Search *Enterprise* SKU at
+   $35/1,000 with a 1,000-request monthly free cap — $0.035 per cycle. Content caching is capped at
+   30 days (Place IDs exempt), which the device-local batch never approaches. One implementation
+   consequence: request `maxResultCount: 20`, since pricing is per request and the larger pool is
+   free. Recorded in R3a.
 2. **Widget location acquisition spike** (R7). Must be proven in a development build before widget
    UI is polished.
 3. **Android dynamic color ADR** (R10). Resolved: fixed Open Color palette in v1, dynamic color

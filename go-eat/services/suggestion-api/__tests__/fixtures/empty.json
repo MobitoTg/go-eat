@@ -1,0 +1,11 @@
+{
+  "_fixture": {
+    "profile": "empty",
+    "description": "Zero results. A legitimate outcome, not an error (FR-004, no_results).",
+    "anchor": {
+      "lat": 64.8378,
+      "lng": -147.7164
+    },
+    "note": "Places omits the `places` key entirely when nothing matches — not an empty array."
+  }
+}

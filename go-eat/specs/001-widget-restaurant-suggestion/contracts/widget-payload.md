@@ -57,7 +57,7 @@ honest-states rule.
 | `updatedAt` | `ISO8601` | When the payload was written |
 | `isStale` | `boolean` | True when displaying data the app could not refresh. Drives the stale indicator |
 | `refreshEnabled` | `boolean` | False hides the refresh control entirely (FR-019) |
-| `item` | `object \| null` | Non-null **only** when `state === "suggestion"` |
+| `item` | `object \| null` | Non-null **only** when `state` is `"suggestion"` or `"stale"`. `stale` renders the last known item alongside the stale indicator, so it needs the item too — null in every other state |
 
 ### WidgetState
 

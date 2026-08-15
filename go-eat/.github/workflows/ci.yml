@@ -1,0 +1,48 @@
+name: CI
+
+on:
+  push:
+    branches: ['**']
+  pull_request:
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: go-eat
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: go-eat/package-lock.json
+
+      - run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      # Constitution VI.5 makes the contrast gate blocking and requires it to run in CI for BOTH
+      # themes. It runs before the other suites so a token-map regression fails fast and loudly —
+      # widget rendering must never proceed against an unverified map.
+      - name: Contrast gate (blocking — Constitution VI.5)
+        run: npm run contrast:gate
+
+      - name: Tier 1 — selection-core (pure logic, no simulator)
+        run: npm test --workspace=packages/selection-core
+
+      - name: Tier 2 — suggestion-api (contract tests, no simulator)
+        run: npm test --workspace=services/suggestion-api
+
+      - name: Guard — provider key absent from the client (Constitution V)
+        run: npm run check:secrets
+
+      - name: Guard — exactly one provider adapter (single-provider constraint)
+        run: npm run check:provider

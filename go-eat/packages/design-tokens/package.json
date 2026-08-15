@@ -1,0 +1,18 @@
+{
+  "name": "@go-eat/design-tokens",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts",
+    "./tokens": "./src/tokens.ts"
+  },
+  "scripts": {
+    "test": "jest",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "contrast:gate": "jest __tests__/contrast-gate.test.ts",
+    "tokens:generate": "tsx generators/run.ts"
+  }
+}

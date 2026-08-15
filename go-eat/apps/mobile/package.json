@@ -1,0 +1,18 @@
+{
+  "name": "@go-eat/mobile",
+  "version": "0.1.0",
+  "private": true,
+  "main": "expo-router/entry",
+  "scripts": {
+    "tokens:generate": "npm run tokens:generate --workspace=packages/design-tokens",
+    "prebuild": "npm run tokens:generate",
+    "ios": "npm run tokens:generate && expo run:ios",
+    "android": "npm run tokens:generate && expo run:android",
+    "test": "jest",
+    "typecheck": "tsc --noEmit -p tsconfig.json"
+  },
+  "dependencies": {
+    "@go-eat/contract-types": "*",
+    "@go-eat/design-tokens": "*"
+  }
+}

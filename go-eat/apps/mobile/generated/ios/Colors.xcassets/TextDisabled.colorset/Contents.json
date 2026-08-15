@@ -1,0 +1,38 @@
+{
+  "colors": [
+    {
+      "color": {
+        "color-space": "srgb",
+        "components": {
+          "red": "0.67843",
+          "green": "0.70980",
+          "blue": "0.74118",
+          "alpha": "1.00000"
+        }
+      },
+      "idiom": "universal"
+    },
+    {
+      "color": {
+        "color-space": "srgb",
+        "components": {
+          "red": "0.52549",
+          "green": "0.55686",
+          "blue": "0.58824",
+          "alpha": "1.00000"
+        }
+      },
+      "idiom": "universal",
+      "appearances": [
+        {
+          "appearance": "luminosity",
+          "value": "dark"
+        }
+      ]
+    }
+  ],
+  "info": {
+    "author": "go-eat-tokens",
+    "version": 1
+  }
+}

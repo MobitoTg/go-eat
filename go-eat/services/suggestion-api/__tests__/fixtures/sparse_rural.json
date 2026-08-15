@@ -1,0 +1,75 @@
+{
+  "_fixture": {
+    "profile": "sparse_rural",
+    "description": "Winthrop, WA — sparse rural. Tests short batches and no_results.",
+    "anchor": {
+      "lat": 48.5126,
+      "lng": -120.7401
+    },
+    "note": "Recorded shape of a Places API (New) searchNearby response for the field mask in src/provider/places.ts. Hand-authored rather than captured live: a captured response would embed real business data subject to the 30-day Places caching limit (research R3a), and fixtures must be permanent."
+  },
+  "places": [
+    {
+      "id": "ChIJ_sparse_rural_00",
+      "displayName": {
+        "text": "Bà Mì Deli"
+      },
+      "types": [
+        "mediterranean_restaurant",
+        "restaurant"
+      ],
+      "primaryType": "mediterranean_restaurant",
+      "location": {
+        "latitude": 48.486322,
+        "longitude": -120.708254
+      },
+      "businessStatus": "OPERATIONAL",
+      "rating": 4.9,
+      "userRatingCount": 37,
+      "currentOpeningHours": {
+        "openNow": true
+      }
+    },
+    {
+      "id": "ChIJ_sparse_rural_01",
+      "displayName": {
+        "text": "Green Fork"
+      },
+      "types": [
+        "restaurant"
+      ],
+      "primaryType": "restaurant",
+      "location": {
+        "latitude": 48.509963,
+        "longitude": -120.726555
+      },
+      "businessStatus": "OPERATIONAL",
+      "rating": 3.9,
+      "userRatingCount": 74,
+      "currentOpeningHours": {
+        "openNow": true
+      }
+    },
+    {
+      "id": "ChIJ_sparse_rural_02",
+      "displayName": {
+        "text": "Harbour Sushi"
+      },
+      "types": [
+        "pizza_restaurant",
+        "restaurant"
+      ],
+      "primaryType": "pizza_restaurant",
+      "location": {
+        "latitude": 48.51738,
+        "longitude": -120.773262
+      },
+      "businessStatus": "OPERATIONAL",
+      "rating": 4.6,
+      "userRatingCount": 59,
+      "currentOpeningHours": {
+        "openNow": false
+      }
+    }
+  ]
+}

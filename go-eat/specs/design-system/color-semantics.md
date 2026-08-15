@@ -59,7 +59,7 @@ them for a single alert affordance, never as the ambient accent.
 | accent.fill            | oc.blue.4   | #4DABF7  |  6.23:1 w/ gray.9   |
 | accent.onFill          | oc.gray.9   | #212529  |                     |
 | status.danger          | oc.red.4    | #FF8787  |  6.66:1 on base     |
-| status.success         | oc.teal.4   | #63E6BE  |  9.99:1 on base     |
+| status.success         | oc.teal.3   | #63E6BE  |  9.99:1 on base     |
 | status.warning         | oc.orange.4 | #FFA94D  |  8.11:1 on base     |
 
 ## Traps this map encodes (do not "simplify" these)

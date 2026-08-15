@@ -68,7 +68,7 @@ written and tested twice, so treat that as a design failure.
 
 ---
 
-## R3. Restaurant data provider — DECIDED, pricing UNVERIFIED
+## R3. Restaurant data provider — DECIDED, pricing VERIFIED
 
 **Decision**: Google Places API (New), accessed exclusively through the backend.
 
@@ -94,12 +94,67 @@ Nearby Search returns a batch in a single request, which is exactly the shape FR
 - **OpenStreetMap / Overpass** — free, but carries no ratings or review counts, which removes the
   entire scoring model and Constitution Principle III with it.
 
-> **UNVERIFIED — BLOCKING BEFORE IMPLEMENTATION.** Current Places API pricing and free-tier
-> allowances were **not** confirmed during this phase (the pricing lookup was declined). Google has
-> restructured Maps billing and free tiers in the recent past, and the fields this product needs
-> (rating, review count, opening hours) sit in higher-priced field tiers. **Confirm live pricing,
-> per-SKU free-call allowances, and the Places content caching/retention terms against Google's
-> official pricing page before writing provider code.** See R4 for why this number is load-bearing.
+### R3a. Pricing and terms verification — RESOLVED 2026-08-14 (T008 gate)
+
+Verified against Google's official pricing and terms pages. The gate is closed; provider code (T025)
+is unblocked. Three findings, one of which changes the implementation.
+
+**SKU tier — Nearby Search Enterprise.** Field masks are billed by tier, and the three fields the
+scoring model cannot work without sit above the cheap tiers:
+
+| Field | Tier | Required by |
+|---|---|---|
+| `places.id`, `displayName`, `types`, `location`, `businessStatus` | Essentials / Pro | FR-002, FR-007, FR-011 |
+| `places.rating`, `userRatingCount` | **Enterprise** | FR-006, FR-010 |
+| `places.currentOpeningHours` | **Enterprise** | FR-012 |
+
+The whole scoring model (Principle III) depends on rating and review volume, so the Enterprise tier
+is not optional. `Enterprise + Atmosphere` is **not** needed — it adds review text, editorial
+summaries and amenity flags that Principle I forbids us from rebuilding anyway.
+
+**Price**: `Places API Nearby Search Enterprise` (SKU 772E-9975-BE34), **$35.00 per 1,000 requests**
+in the 0–100k monthly band, dropping to $28.00 (100k–500k) and $21.00 (500k–1M). Free allowance is
+**1,000 requests per month** — the Enterprise cap, not the 5,000 that Essentials/Pro get.
+
+**What this does to the cost model** — carried into R4:
+
+| | Value |
+|---|---|
+| Cost per cycle | **$0.035** beyond the free 1,000/month |
+| Free allowance in cycles | 1,000/month **total, across all users** |
+| Cost of one user at 2 cycles/day | ≈ **$2.10 / user / month** |
+
+That is a serious number for a free consumer widget, and it retroactively justifies the
+batch-and-cycle mechanic: one billed request amortized over up to five refreshes drops the effective
+cost per *suggestion viewed* to $0.007. It also promotes the R4 rate limit (T045) and
+`batchTrustSeconds` from hygiene to primary cost levers — they are the two things that directly cap
+spend per user.
+
+**Implementation change — request 20 candidates, not 5.** `maxResultCount` accepts 1–20 and pricing
+is **per request, not per result**. Asking for 5 and asking for 20 cost exactly the same. Since the
+hard filters (`businessStatus`, `openNow`, user exclusions) run *after* the fetch, requesting 5 risks
+a batch that filters down to one or zero — an avoidable `no_results` at full price. The adapter
+therefore requests 20, filters, scores, and keeps the top 5 for the batch. This widens the SC-005
+quality pool at zero marginal cost. Recorded here because it is a pricing consequence, not a
+scoring choice.
+
+**Caching and retention terms** (Maps Platform Service Specific Terms §3.2.3(b)):
+
+- **Place IDs are exempt** from the caching restriction and may be stored indefinitely.
+- **All other Places content** — name, rating, review count, hours, coordinates — may be cached for
+  at most **30 consecutive calendar days**.
+- No permanent storage, no scraping, no bulk extraction.
+
+Go-Eat is comfortably inside this. The batch lives in device shared storage until the next cycle
+replaces it, bounded by `batchTrustSeconds` (1800s), and the backend persists nothing at all. The
+R4 decision against cross-user response caching is confirmed as correct — but note the constraint
+was never the binding one here; Principle V (location borrowed, not kept) is stricter than Google's
+terms in every dimension that overlaps.
+
+> **Follow-up, non-blocking**: Places policies impose attribution requirements when Places content is
+> displayed. The widget shows a name and rating sourced from Places, so confirm the required
+> attribution surface before store submission and record it in `THIRD_PARTY.md` alongside the Open
+> Color notice (FR-041). Not a v1 build blocker; it is a submission blocker.
 
 ---
 
@@ -107,6 +162,12 @@ Nearby Search returns a batch in a single request, which is exactly the shape FR
 
 **Finding**: Every candidate provider bills per request. Combined with FR-014 (one call per cycle),
 **a suggestion cycle has a direct unit cost**, and total spend scales with cycles, not with installs.
+
+**The unit cost is now known** (R3a, verified 2026-08-14): **$0.035 per cycle**, with only 1,000
+free cycles per month across the entire service. At 2 cycles/day a single user costs ≈ $2.10/month.
+This is high enough that the cost model is a product constraint, not an ops detail — it means the
+free allowance is exhausted by roughly 16 daily-active users, and every architectural decision below
+is load-bearing rather than precautionary.
 
 **Why the spec's cycle-trigger decision matters more than it first appeared**: FR-020 restricts new
 cycles to user refresh and batch invalidation, with no timer and no meal-window trigger. That means
@@ -116,7 +177,11 @@ than a variable cost per use.
 
 **Decisions carried forward**:
 
-- Batch size stays at 5 (FR-014). One request amortized across up to five refreshes.
+- Batch size stays at 5 (FR-014). One request amortized across up to five refreshes, which is what
+  takes the cost per *suggestion viewed* from $0.035 down to $0.007.
+- The provider request asks for `maxResultCount: 20`, not 5. Pricing is per request regardless of
+  result count (R3a), so the larger pool is free and protects the batch from being filtered down to
+  nothing. Fetch 20 → hard-filter → score → keep 5.
 - The backend MUST emit a per-cycle counter so cost per active user is observable from day one.
 - The backend MUST enforce a per-installation cycle rate limit as an abuse/runaway-cost guard. This
   is a backstop, not a product feature, and MUST NOT surface as a user-facing restriction.

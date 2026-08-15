@@ -1,0 +1,247 @@
+{
+  "_fixture": {
+    "profile": "suburban",
+    "description": "Redmond, WA — suburban. Fewer venues, more chains.",
+    "anchor": {
+      "lat": 47.674,
+      "lng": -122.1215
+    },
+    "note": "Recorded shape of a Places API (New) searchNearby response for the field mask in src/provider/places.ts. Hand-authored rather than captured live: a captured response would embed real business data subject to the 30-day Places caching limit (research R3a), and fixtures must be permanent."
+  },
+  "places": [
+    {
+      "id": "ChIJ_suburban_00",
+      "displayName": {
+        "text": "Bà Mì Deli"
+      },
+      "types": [
+        "seafood_restaurant",
+        "restaurant"
+      ],
+      "primaryType": "seafood_restaurant",
+      "location": {
+        "latitude": 47.669781,
+        "longitude": -122.131031
+      },
+      "businessStatus": "OPERATIONAL",
+      "rating": 5,
+      "userRatingCount": 162,
+      "currentOpeningHours": {
+        "openNow": true
+      }
+    },
+    {
+      "id": "ChIJ_suburban_01",
+      "displayName": {
+        "text": "Green Fork"
+      },
+      "types": [
+        "pizza_restaurant",
+        "restaurant"
+      ],
+      "primaryType": "pizza_restaurant",
+      "location": {
+        "latitude": 47.6815,
+        "longitude": -122.126004
+      },
+      "businessStatus": "OPERATIONAL",
+      "rating": 4.2,
+      "userRatingCount": 511,
+      "currentOpeningHours": {
+        "openNow": true
+      }
+    },
+    {
+      "id": "ChIJ_suburban_02",
+      "displayName": {
+        "text": "Harbour Sushi"
+      },
+      "types": [
+        "sandwich_shop",
+        "restaurant"
+      ],
+      "primaryType": "sandwich_shop",
+      "location": {
+        "latitude": 47.661699,
+        "longitude": -122.118782
+      },
+      "businessStatus": "OPERATIONAL",
+      "rating": 3.6,
+      "userRatingCount": 222,
+      "currentOpeningHours": {
+        "openNow": true
+      }
+    },
+    {
+      "id": "ChIJ_suburban_03",
+      "displayName": {
+        "text": "Olive & Thyme"
+      },
+      "types": [
+        "vegetarian_restaurant",
+        "restaurant"
+      ],
+      "primaryType": "vegetarian_restaurant",
+      "location": {
+        "latitude": 47.680749,
+        "longitude": -122.11624
+      },
+      "businessStatus": "OPERATIONAL",
+      "rating": 4,
+      "userRatingCount": 89,
+      "currentOpeningHours": {
+        "openNow": true
+      }
+    },
+    {
+      "id": "ChIJ_suburban_04",
+      "displayName": {
+        "text": "The Daily Grind"
+      },
+      "types": [
+        "mediterranean_restaurant",
+        "restaurant"
+      ],
+      "primaryType": "mediterranean_restaurant",
+      "location": {
+        "latitude": 47.669338,
+        "longitude": -122.131617
+      },
+      "businessStatus": "OPERATIONAL",
+      "rating": 4,
+      "userRatingCount": 570,
+      "currentOpeningHours": {
+        "openNow": true
+      }
+    },
+    {
+      "id": "ChIJ_suburban_05",
+      "displayName": {
+        "text": "Nonna Pizzeria"
+      },
+      "types": [
+        "sushi_restaurant",
+        "japanese_restaurant",
+        "restaurant"
+      ],
+      "primaryType": "sushi_restaurant",
+      "location": {
+        "latitude": 47.676048,
+        "longitude": -122.109649
+      },
+      "businessStatus": "OPERATIONAL",
+      "rating": 4.6,
+      "userRatingCount": 165,
+      "currentOpeningHours": {
+        "openNow": true
+      }
+    },
+    {
+      "id": "ChIJ_suburban_06",
+      "displayName": {
+        "text": "Burger Yard"
+      },
+      "types": [
+        "sandwich_shop",
+        "restaurant"
+      ],
+      "primaryType": "sandwich_shop",
+      "location": {
+        "latitude": 47.674609,
+        "longitude": -122.115814
+      },
+      "businessStatus": "OPERATIONAL",
+      "rating": 4.5,
+      "userRatingCount": 187,
+      "currentOpeningHours": {
+        "openNow": true
+      }
+    },
+    {
+      "id": "ChIJ_suburban_07",
+      "displayName": {
+        "text": "Quick Bite"
+      },
+      "types": [
+        "sushi_restaurant",
+        "japanese_restaurant",
+        "restaurant"
+      ],
+      "primaryType": "sushi_restaurant",
+      "location": {
+        "latitude": 47.680736,
+        "longitude": -122.133236
+      },
+      "businessStatus": "OPERATIONAL",
+      "rating": 4.2,
+      "userRatingCount": 97,
+      "currentOpeningHours": {
+        "openNow": true
+      }
+    },
+    {
+      "id": "ChIJ_suburban_08",
+      "displayName": {
+        "text": "Salt & Stone"
+      },
+      "types": [
+        "seafood_restaurant",
+        "restaurant"
+      ],
+      "primaryType": "seafood_restaurant",
+      "location": {
+        "latitude": 47.677177,
+        "longitude": -122.119575
+      },
+      "businessStatus": "OPERATIONAL",
+      "rating": 4.1,
+      "userRatingCount": 434,
+      "currentOpeningHours": {
+        "openNow": true
+      }
+    },
+    {
+      "id": "ChIJ_suburban_09",
+      "displayName": {
+        "text": "Cedar Kitchen"
+      },
+      "types": [
+        "pizza_restaurant",
+        "restaurant"
+      ],
+      "primaryType": "pizza_restaurant",
+      "location": {
+        "latitude": 47.684824,
+        "longitude": -122.110722
+      },
+      "businessStatus": "OPERATIONAL",
+      "rating": 4,
+      "userRatingCount": 203,
+      "currentOpeningHours": {
+        "openNow": true
+      }
+    },
+    {
+      "id": "ChIJ_suburban_10",
+      "displayName": {
+        "text": "Blue Plate"
+      },
+      "types": [
+        "sushi_restaurant",
+        "japanese_restaurant",
+        "restaurant"
+      ],
+      "primaryType": "sushi_restaurant",
+      "location": {
+        "latitude": 47.671585,
+        "longitude": -122.124024
+      },
+      "businessStatus": "OPERATIONAL",
+      "rating": 5,
+      "userRatingCount": 41,
+      "currentOpeningHours": {
+        "openNow": false
+      }
+    }
+  ]
+}

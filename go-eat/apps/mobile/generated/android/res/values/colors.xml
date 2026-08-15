@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  GENERATED FILE — do not edit.
+  Source: packages/design-tokens/src/semantics.ts
+  Regenerate: npm run tokens:generate
+
+  Fixed palette by decision (ADR-001). No Material You / system_* references belong here:
+  RemoteViews cannot resolve contrast at runtime, and surfaces are the reference side of
+  every pairing the contrast gate verifies.
+-->
+<resources>
+    <color name="goeat_accent_fill">#FF1971C2</color>
+    <color name="goeat_accent_on_fill">#FFFFFFFF</color>
+    <color name="goeat_accent_text">#FF1971C2</color>
+    <color name="goeat_border_hairline">#FFE9ECEF</color>
+    <color name="goeat_border_strong">#FFCED4DA</color>
+    <color name="goeat_status_danger">#FFE03131</color>
+    <color name="goeat_status_success">#FF087F5B</color>
+    <color name="goeat_status_warning">#FFD9480F</color>
+    <color name="goeat_surface_accent_subtle">#FFE7F5FF</color>
+    <color name="goeat_surface_base">#FFFFFFFF</color>
+    <color name="goeat_surface_raised">#FFFFFFFF</color>
+    <color name="goeat_surface_sunken">#FFF1F3F5</color>
+    <color name="goeat_text_disabled">#FFADB5BD</color>
+    <color name="goeat_text_primary">#FF212529</color>
+    <color name="goeat_text_secondary">#FF495057</color>
+    <color name="goeat_text_tertiary">#FF868E96</color>
+</resources>
