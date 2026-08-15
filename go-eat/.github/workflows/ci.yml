@@ -38,8 +38,17 @@ jobs:
       - name: Tier 1 — selection-core (pure logic, no simulator)
         run: npm test --workspace=packages/selection-core
 
+      - name: Tier 1 — design-tokens (contrast gate + full suite, no simulator)
+        run: npm test --workspace=packages/design-tokens
+
       - name: Tier 2 — suggestion-api (contract tests, no simulator)
         run: npm test --workspace=services/suggestion-api
+
+      # Tier 2 for the client: pure cycle/cursor/storage logic, no simulator (research R9). The
+      # `__tests__/integration/` subtree is Tier 3 (Detox + a real Simulator/emulator) and is
+      # excluded from this run the same way it's excluded from apps/mobile/tsconfig.json.
+      - name: Tier 2 — apps/mobile (client logic, no simulator)
+        run: npm test --workspace=apps/mobile
 
       - name: Guard — provider key absent from the client (Constitution V)
         run: npm run check:secrets

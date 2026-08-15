@@ -17,7 +17,7 @@
     "dev": "npm run dev --workspace=services/suggestion-api",
     "test": "npm run test --workspaces --if-present",
     "lint": "eslint .",
-    "typecheck": "tsc --build",
+    "typecheck": "tsc --build && npm run typecheck --workspace=apps/mobile",
     "fixtures:report": "npm run fixtures:report --workspace=packages/selection-core",
     "ios": "npm run ios --workspace=apps/mobile",
     "android": "npm run android --workspace=apps/mobile",

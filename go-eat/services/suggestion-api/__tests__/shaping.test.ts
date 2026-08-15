@@ -42,11 +42,13 @@ describe('Display formatting (FR-002)', () => {
       expect(formatCuisineLabel(label)).toBe(label);
     });
 
-    it('truncates to 30 characters and appends ellipsis if longer', () => {
+    it('truncates to the 30-character contract budget, including the ellipsis', () => {
+      // contracts/suggestion-api.yaml caps cuisineLabel at maxLength: 30 — the ellipsis must fit
+      // inside that budget, not be appended past it.
       const longLabel = 'A'.repeat(40);
       const formatted = formatCuisineLabel(longLabel);
-      expect(formatted).toHaveLength(33); // 30 + '...'
-      expect(formatted).toBe('A'.repeat(30) + '...');
+      expect(formatted.length).toBeLessThanOrEqual(30);
+      expect(formatted).toBe('A'.repeat(27) + '...');
     });
 
     it('maps provider place types to readable labels', () => {
@@ -117,9 +119,9 @@ describe('Display formatting (FR-002)', () => {
       expect(formatReviewCount(10000000)).toBe('10.0m');
     });
 
-    it('rounds intelligently (no trailing zeros)', () => {
-      expect(formatReviewCount(1000)).not.toBe('1.0k'); // or should be?
-      // This depends on product choice; verify the implementation matches intent
+    it('always shows exactly one decimal place in the abbreviated range', () => {
+      expect(formatReviewCount(2000)).toBe('2.0k');
+      expect(formatReviewCount(2000000)).toBe('2.0m');
     });
   });
 
@@ -169,7 +171,7 @@ describe('Display formatting (FR-002)', () => {
     });
 
     it('throws on invalid unit', () => {
-      expect(() => formatDistance(1000, 'invalid')).toThrow();
+      expect(() => formatDistance(1000, 'invalid' as never)).toThrow();
     });
 
     it('throws on negative distance', () => {
@@ -180,14 +182,14 @@ describe('Display formatting (FR-002)', () => {
   describe('integration: formatted suggestion display', () => {
     it('produces display-ready strings for a typical restaurant', () => {
       const name = 'The Kitchen at Brooklyn Fare';
-      const types = ['restaurant', 'fine_dining'];
+      const types: string[] = ['restaurant', 'fine_dining'];
       const rating = 4.7;
       const reviewCount = 2345;
       const distanceMeters = 800;
 
       const display = {
         name: formatName(name),
-        cuisine: formatCuisineLabel(types[0]),
+        cuisine: formatCuisineLabel(types[0] ?? 'restaurant'),
         rating: formatRating(rating),
         reviews: formatReviewCount(reviewCount),
         distance: formatDistance(distanceMeters, 'imperial'),

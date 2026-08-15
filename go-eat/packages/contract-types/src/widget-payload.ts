@@ -12,6 +12,8 @@
  * the platform carries the *appearance*.
  */
 
+import type { LocationAnchor, SuggestionItem } from './suggestion-api.js';
+
 /**
  * Payload schema version. Bump on any breaking field change.
  *
@@ -85,4 +87,37 @@ export const PAYLOAD_STORAGE = {
   ios: { key: 'goeat.widget.payload' },
   /** Android SharedPreferences file and key. */
   android: { preferences: 'goeat_widget', key: 'payload' },
+} as const;
+
+/**
+ * The app-local batch record, from data-model.md's `SuggestionBatch` entity.
+ *
+ * Distinct from `WidgetPayload`: this carries the FULL ordered batch and the cursor, because the
+ * refresh handler (a native App Intent on iOS, a broadcast receiver on Android — FR-005) must be
+ * able to advance the cursor and recompute a `WidgetPayload` WITHOUT launching the JS app. Both
+ * live in the same shared-storage container (data-model.md storage boundaries table), under
+ * separate keys, so the refresh handler never needs the app process running.
+ *
+ * `WidgetPayload` never carries this shape directly — no score, no rank, no sibling reference
+ * reaches the render layer (FR-001, Principle II). This type is the one place `items` and `cursor`
+ * are allowed to travel together.
+ */
+export interface SuggestionBatch {
+  cycleId: string;
+  seed: string;
+  issuedAt: string;
+  anchor: LocationAnchor;
+  /** Cheap equality check for FR-021 preference-change invalidation. */
+  preferencesHash: string;
+  /** Ordered, render-ready, 0–5 items. The client never reorders (FR-013). */
+  items: SuggestionItem[];
+  /** Index of the displayed item. `0 <= cursor < items.length` whenever items is non-empty. */
+  cursor: number;
+  /** Mirrors backend config (FR-019). False ⇒ refresh is never called, cursor stays 0. */
+  refreshEnabled: boolean;
+}
+
+export const BATCH_STORAGE = {
+  ios: { key: 'goeat.widget.batch' },
+  android: { preferences: 'goeat_widget', key: 'batch' },
 } as const;

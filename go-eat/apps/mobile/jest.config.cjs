@@ -20,7 +20,10 @@ module.exports = {
       {
         tsconfig: {
           module: 'CommonJS',
-          moduleResolution: 'Node',
+          // 'Node' (classic) resolution predates package.json `exports` maps and cannot resolve
+          // subpath exports like `@go-eat/design-tokens/tokens`. 'Bundler' understands them while
+          // still allowing extensionless relative imports, matching how these files are written.
+          moduleResolution: 'Bundler',
           jsx: 'react-jsx',
           verbatimModuleSyntax: false,
           isolatedModules: false,

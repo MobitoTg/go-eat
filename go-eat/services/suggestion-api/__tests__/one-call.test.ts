@@ -1,5 +1,3 @@
-import { vi } from 'vitest';
-
 import type { FastifyInstance } from 'fastify';
 
 import { buildApp } from '../src/app.js';
@@ -9,16 +7,26 @@ import * as placesModule from '../src/provider/places.js';
 /**
  * T035: Each cycle issues EXACTLY one provider request.
  *
- * FR-014, FR-015: "One provider call per cycle" is a hard constraint (cost model, R4).
- * This test asserts via spy that the provider adapter is called exactly once, regardless
- * of request parameters or batch state.
- *
- * Run this alongside other cycle tests but flag failures immediately — it is
- * a regression test for a load-bearing constraint.
+ * FR-014, FR-015: "one provider call per cycle" is a hard constraint on the cost model (research
+ * R3a). This asserts via spy that `fetchNearbyRestaurants` is called exactly once per
+ * `POST /v1/cycle`, regardless of request parameters or how the batch turns out.
  */
+
+const CANDIDATE = {
+  providerPlaceId: 'place-001',
+  name: "Joe's Pizza",
+  types: ['pizza_restaurant', 'restaurant'],
+  rating: 4.5,
+  reviewCount: 1234,
+  location: { lat: 40.713, lng: -74.005 },
+  openNow: true,
+  businessStatus: 'OPERATIONAL' as const,
+  dietaryTags: [],
+};
 
 describe('POST /v1/cycle — exactly one provider call per cycle (FR-014, FR-015)', () => {
   let app: FastifyInstance;
+  let fetchSpy: jest.SpyInstance;
 
   beforeAll(async () => {
     const config = loadConfig();
@@ -31,12 +39,11 @@ describe('POST /v1/cycle — exactly one provider call per cycle (FR-014, FR-015
   });
 
   beforeEach(() => {
-    // Spy on the provider's public surface.
-    vi.spyOn(placesModule, 'fetchNearbyRestaurants');
+    fetchSpy = jest.spyOn(placesModule, 'fetchNearbyRestaurants').mockResolvedValue([CANDIDATE]);
   });
 
   afterEach(() => {
-    vi.restoreAllMocks();
+    fetchSpy.mockRestore();
   });
 
   it('issues exactly one provider call for a fresh cycle', async () => {
@@ -44,24 +51,19 @@ describe('POST /v1/cycle — exactly one provider call per cycle (FR-014, FR-015
       method: 'POST',
       url: '/v1/cycle',
       payload: {
-        location: { lat: 40.7128, lng: -74.006 },
-        unit: 'imperial',
+        lat: 40.7128,
+        lng: -74.006,
+        unitSystem: 'imperial',
         installationId: 'one-call-test-001',
-        exclusions: [],
-        preferences: [],
       },
     });
 
     expect(response.statusCode).toBe(200);
+    expect(fetchSpy).toHaveBeenCalledTimes(1);
 
-    // Exactly one call to the provider
-    expect(placesModule.fetchNearbyRestaurants).toHaveBeenCalledTimes(1);
-
-    // Verify the call parameters (location is passed)
-    const call = vi.mocked(placesModule.fetchNearbyRestaurants).mock.calls[0]!;
-    expect(call[0]).toBeDefined(); // location anchor
-    expect(call[0].lat).toBe(40.7128);
-    expect(call[0].lng).toBe(-74.006);
+    const [anchor] = fetchSpy.mock.calls[0]!;
+    expect(anchor.lat).toBe(40.7128);
+    expect(anchor.lng).toBe(-74.006);
   });
 
   it('issues exactly one call even when multiple exclusions are provided', async () => {
@@ -69,60 +71,52 @@ describe('POST /v1/cycle — exactly one provider call per cycle (FR-014, FR-015
       method: 'POST',
       url: '/v1/cycle',
       payload: {
-        location: { lat: 40.7128, lng: -74.006 },
-        unit: 'imperial',
+        lat: 40.7128,
+        lng: -74.006,
+        unitSystem: 'imperial',
         installationId: 'one-call-test-002',
-        exclusions: ['vegan', 'gluten_free', 'shellfish'],
-        preferences: [],
+        exclusions: ['vegan', 'gluten_free', 'shellfish_free'],
       },
     });
 
     expect(response.statusCode).toBe(200);
-
-    // Still exactly one provider call — exclusions are filters, not separate queries
-    expect(placesModule.fetchNearbyRestaurants).toHaveBeenCalledTimes(1);
+    expect(fetchSpy).toHaveBeenCalledTimes(1);
   });
 
-  it('issues exactly one call even if hard filters result in no_results', async () => {
-    // Use a location where many results exist, but all will be filtered
-    // (e.g., all closed restaurants in a test zone — this is artificial but verifies
-    // that we don't retry or make a second call when the first batch filters down).
+  it('issues exactly one call even when hard filters remove every candidate', async () => {
+    fetchSpy.mockResolvedValueOnce([{ ...CANDIDATE, dietaryTags: ['vegan'] }]);
 
     const response = await app.inject({
       method: 'POST',
       url: '/v1/cycle',
       payload: {
-        location: { lat: 40.7128, lng: -74.006 },
-        unit: 'imperial',
+        lat: 40.7128,
+        lng: -74.006,
+        unitSystem: 'imperial',
         installationId: 'one-call-test-003',
-        exclusions: [],
-        preferences: [],
+        exclusions: ['vegan'],
       },
     });
 
-    // May succeed or fail, but provider should be called at most once
-    expect(placesModule.fetchNearbyRestaurants).toHaveBeenCalledTimes(1);
+    expect(response.statusCode).toBe(200);
+    expect(fetchSpy).toHaveBeenCalledTimes(1);
   });
 
-  it('includes maxResultCount of 20 in the provider request (R3a: larger pool, same price)', async () => {
+  it('requests the provider candidate pool size from config (R3a: larger pool, same price)', async () => {
     const response = await app.inject({
       method: 'POST',
       url: '/v1/cycle',
       payload: {
-        location: { lat: 40.7128, lng: -74.006 },
-        unit: 'imperial',
+        lat: 40.7128,
+        lng: -74.006,
+        unitSystem: 'imperial',
         installationId: 'one-call-test-004',
-        exclusions: [],
-        preferences: [],
       },
     });
 
     expect(response.statusCode).toBe(200);
 
-    const call = vi.mocked(placesModule.fetchNearbyRestaurants).mock.calls[0]!;
-    // The second parameter (options or config) should specify maxResultCount: 20
-    // (Exact structure depends on implementation, but verify the intent)
-    expect(call[1]).toBeDefined();
-    expect(call[1].maxResultCount).toBe(20);
+    const [, options] = fetchSpy.mock.calls[0]!;
+    expect(options.maxResultCount).toBe(loadConfig().providerCandidateCount);
   });
 });

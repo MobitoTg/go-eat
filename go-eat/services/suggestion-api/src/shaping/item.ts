@@ -1,75 +1,68 @@
 /**
  * T041: SuggestionItem assembly.
  *
- * Assembles a display-ready suggestion from a restaurant candidate and formatted data.
- * Deliberately excludes score, rank, and any sibling reference (FR-001, Principle II).
- *
- * A suggestion is data-only: name, cuisine, rating, distance, and two URLs.
- * No state, no metadata, no hints about selection process.
+ * Assembles a display-ready suggestion from a SCORED candidate. Deliberately excludes score, rank,
+ * and any sibling reference (FR-001, Principle II) — a suggestion is data-only: name, cuisine,
+ * rating, distance, and two URLs. No state, no metadata, no hint that alternatives exist.
  */
 
-import type { SuggestionItem } from '@go-eat/contract-types';
-import type { RestaurantCandidate } from '@go-eat/selection-core';
+import type { SuggestionItem, UnitSystem } from '@go-eat/contract-types';
+import type { ScoredCandidate } from '@go-eat/selection-core';
 
-import { buildGoogleMapsUrls } from './google-maps.js';
-import { formatCuisineLabel, formatDistance, formatName, formatRating, formatReviewCount, type DistanceUnit } from '../shaping/format.js';
+import { buildGoogleMapsUrls } from '../links/google-maps.js';
+import {
+  formatCuisineLabel,
+  formatDistance,
+  formatName,
+  formatRating,
+  formatReviewCount,
+  pickPrimaryCuisineType,
+  NO_RATING_LABEL,
+  NO_REVIEW_COUNT_LABEL,
+} from './format.js';
 
 export interface AssembleItemInput {
-  candidate: RestaurantCandidate;
-  unit: DistanceUnit;
+  scored: ScoredCandidate;
+  unitSystem: UnitSystem;
 }
 
 /**
- * Assemble a SuggestionItem from a ranked candidate and display format preferences.
+ * Assemble a `SuggestionItem` from a ranked, scored candidate and the requested unit system.
  */
-export function assembleSuggestionItem(input: AssembleItemInput): SuggestionItem {
-  const { candidate, unit } = input;
+export function assembleSuggestionItem({ scored, unitSystem }: AssembleItemInput): SuggestionItem {
+  const { candidate, distanceMeters } = scored;
 
-  // Format all display fields
-  const name = formatName(candidate.name);
-  const cuisineLabel = formatCuisineLabel(candidate.cuisineType);
-  const rating = formatRating(candidate.rating);
-  const reviewCount = formatReviewCount(candidate.reviewCount);
-  const distance = formatDistance(candidate.distanceMeters, unit);
-
-  // Build deep-link URLs
   const { listingUrl, fallbackUrl } = buildGoogleMapsUrls({
-    placeId: candidate.placeId,
-    name: candidate.name, // Use raw name for URL, not truncated
+    placeId: candidate.providerPlaceId,
+    // Raw name for the URL — truncation is a display concern only.
+    name: candidate.name,
     lat: candidate.location.lat,
     lng: candidate.location.lng,
   });
 
-  // Assemble the item
-  const item: SuggestionItem = {
-    placeId: candidate.placeId,
-    name,
-    cuisineLabel,
-    rating,
-    reviewCount,
-    distance,
+  return {
+    providerPlaceId: candidate.providerPlaceId,
+    name: formatName(candidate.name),
+    cuisineLabel: formatCuisineLabel(pickPrimaryCuisineType(candidate.types)),
+    // `rating`/`reviewCount` are `null` when the provider reported none — absent data, not zero
+    // (FR-010, data-model.md). The display sentinel makes that legible rather than showing "0.0 ⭐".
+    ratingLabel: candidate.rating === null ? NO_RATING_LABEL : formatRating(candidate.rating),
+    reviewCountLabel:
+      candidate.reviewCount === null ? NO_REVIEW_COUNT_LABEL : formatReviewCount(candidate.reviewCount),
+    distanceLabel: formatDistance(distanceMeters, unitSystem),
     listingUrl,
     fallbackUrl,
   };
-
-  return item;
 }
 
 /**
- * Validate that an item contains no forbidden fields.
- * Used as a guard to prevent leaking internal state.
+ * Guard: assert a shaped item leaks none of the internal fields Principle II forbids.
+ * Used by tests, not by the request path — a type-correct `SuggestionItem` cannot carry these.
  */
-export function validateItemNoInternalFields(item: any): void {
-  if ('score' in item && item.score !== undefined) {
-    throw new Error('Item must not include "score"');
-  }
-  if ('rank' in item && item.rank !== undefined) {
-    throw new Error('Item must not include "rank"');
-  }
-  if ('siblings' in item && item.siblings !== undefined) {
-    throw new Error('Item must not include "siblings"');
-  }
-  if ('_score' in item || '_rank' in item) {
-    throw new Error('Item must not include internal fields (prefixed with _)');
+export function assertNoInternalFields(item: Record<string, unknown>): void {
+  for (const forbidden of ['score', 'rank', 'siblings', 'components']) {
+    if (forbidden in item && item[forbidden] !== undefined) {
+      throw new Error(`SuggestionItem must not include "${forbidden}"`);
+    }
   }
 }

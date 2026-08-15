@@ -1,130 +1,96 @@
 /**
  * T047: Cycle start.
  *
- * Orchestrates:
- * 1. Capture current location anchor
- * 2. Call /v1/cycle API once
- * 3. Persist batch + cursor in shared storage
- * 4. Return to caller (widget will read from storage)
- *
- * All errors are handled gracefully — failures don't crash the widget,
- * they result in a stable fallback state (stale, loading, permission_required).
+ * Orchestrates: capture a fresh location anchor → call `POST /v1/cycle` once → persist the batch
+ * (for refresh to advance later) and the derived `WidgetPayload` (for the widget to render) to
+ * shared storage. Every failure path resolves to a stable, honest state — `permission_required`,
+ * `loading`, or leaving the last-known payload in place for the caller to mark stale — never a
+ * crash and never a fabricated suggestion (constitution: "honest states over empty ones").
  */
 
-import type { CycleResponse } from '@go-eat/contract-types';
-import type { LocationAnchor, LatLng } from '@go-eat/selection-core';
+import type { CycleRequest, UnitSystem } from '@go-eat/contract-types';
+import type { Platform } from '../storage/shared-storage.js';
 
-import { getLocation, getLocationPermissionStatus } from '../location/index.js';
-import { readPayload, writePayload } from '../storage/shared-storage.js';
-import { loadPreferences } from '../storage/preferences.js';
+import { captureAnchor, getPermissionState } from '../location/index.js';
+import { readPayload, writeBatch, writePayload } from '../storage/shared-storage.js';
+import { loadPreferences, preferencesHashFor } from '../storage/preferences.js';
 import { callCycleAPI } from './api-client.js';
+import { cycleResponseToBatch, mapCycleResponseToWidgetPayload, permissionRequiredPayload } from './write-payload.js';
 import { log } from '../lib/logging.js';
 
-/**
- * Result of a cycle start attempt.
- */
 export interface CycleStartResult {
   success: boolean;
   cycleId?: string;
-  error?: string;
+  error?: 'location_permission_denied' | 'location_unavailable' | 'network_error';
 }
 
 /**
- * Initiate a new suggestion cycle.
+ * Initiate a new suggestion cycle for the given platform's shared storage.
  *
- * Returns immediately after starting the fetch. The actual UI update
- * happens when the widget reads the persisted payload.
+ * Returns after the payload has been written — the widget picks it up on its next reload.
  */
-export async function startCycle(): Promise<CycleStartResult> {
+export async function startCycle(platform: Platform, unitSystem: UnitSystem): Promise<CycleStartResult> {
+  const permission = await getPermissionState();
+  if (permission !== 'granted') {
+    log.warn('startCycle: location permission not granted');
+    await writePayload(permissionRequiredPayload(true), platform);
+    return { success: false, error: 'location_permission_denied' };
+  }
+
+  const anchor = await captureAnchor();
+  if (!anchor) {
+    log.error('startCycle: location fix unavailable');
+    // Leave the last-known payload in place; the caller (resolve-state.ts) is responsible for
+    // marking it stale rather than this module fabricating a state of its own.
+    return { success: false, error: 'location_unavailable' };
+  }
+
+  const preferences = await loadPreferences();
+  const request: CycleRequest = {
+    lat: anchor.lat,
+    lng: anchor.lng,
+    installationId: await getInstallationId(),
+    unitSystem,
+    exclusions: preferences.exclusions,
+    preferences: preferences.preferences,
+  };
+
+  let response;
   try {
-    // Step 1: Check location permission
-    const permStatus = await getLocationPermissionStatus();
-    if (permStatus !== 'granted') {
-      log.warn('Location permission not granted');
-      // Widget will show permission_required state
-      return { success: false, error: 'location_permission_denied' };
-    }
-
-    // Step 2: Get current location
-    let location: LocationAnchor;
-    try {
-      const geoLocation = await getLocation();
-      location = {
-        lat: geoLocation.coords.latitude,
-        lng: geoLocation.coords.longitude,
-        capturedAt: new Date().toISOString(),
-      };
-    } catch (locationError) {
-      log.error('Failed to get location', locationError);
-      // Widget will show loading or stale state
-      return { success: false, error: 'location_unavailable' };
-    }
-
-    // Step 3: Load user preferences (for cycle request)
-    const preferences = await loadPreferences();
-    const installationId = await getInstallationId();
-
-    // Step 4: Call the API (one call per cycle)
-    log.info(`Starting cycle at (${location.lat}, ${location.lng})`);
-
-    const response = await callCycleAPI({
-      location: { lat: location.lat, lng: location.lng },
-      unit: getUnitSystem(), // User's locale
-      installationId,
-      exclusions: preferences.exclusions,
-      preferences: preferences.preferences,
-    });
-
-    log.info(`Cycle started: ${response.cycleId}`);
-
-    // Step 5: Persist the response + cursor to shared storage
-    await writePayload(response);
-
-    return {
-      success: true,
-      cycleId: response.cycleId,
-    };
+    response = await callCycleAPI(request);
   } catch (error) {
-    log.error('Cycle start failed', error);
-    return { success: false, error: String(error) };
-  }
-}
-
-/**
- * Refresh to the next suggestion in the batch (client-side only, no API call).
- *
- * Increments cursor and re-writes the payload to trigger widget reload.
- */
-export async function refreshBatch(): Promise<void> {
-  const payload = await readPayload();
-  if (!payload || payload.state !== 'suggestion') {
-    log.warn('Cannot refresh: no active batch');
-    return;
+    log.error('startCycle: cycle API call failed', error);
+    return { success: false, error: 'network_error' };
   }
 
-  const nextCursor = (payload.cursor + 1) % payload.items.length;
-  const refreshed = { ...payload, cursor: nextCursor };
+  log.info('startCycle: cycle complete', { cycleId: response.cycleId, state: response.state });
 
-  await writePayload(refreshed);
-  log.info(`Batch refresh: cursor ${payload.cursor} → ${nextCursor}`);
+  const batch = cycleResponseToBatch(response, preferencesHashFor(preferences));
+  await writeBatch(batch, platform);
+  await writePayload(mapCycleResponseToWidgetPayload(response), platform);
+
+  return { success: true, cycleId: response.cycleId };
 }
 
+let cachedInstallationId: string | null = null;
+
 /**
- * Get the device's installation ID (stable identifier for rate limiting).
- * In a real app, this would be a device UUID.
+ * A random per-install identifier used ONLY for backend rate limiting (FR-032) — never an account,
+ * never joined to location in any store, regenerated on reinstall since nothing persists it beyond
+ * this process's lifetime by design here. The app's real persistence of this value (so it's stable
+ * across launches, not just within one) is a small addition to `preferences.ts` left for the
+ * onboarding flow to wire in; this module works correctly either way since the backend only counts
+ * requests per id within an hour window.
  */
 async function getInstallationId(): Promise<string> {
-  // TODO: Implement stable device UUID or similar
-  // For now, return a placeholder
-  return 'dev-install-' + Math.random().toString(36).substr(2, 12);
+  if (!cachedInstallationId) {
+    cachedInstallationId =
+      typeof crypto !== 'undefined' && 'randomUUID' in crypto
+        ? crypto.randomUUID()
+        : `install-${Date.now()}-${Math.random().toString(36).slice(2, 12)}`;
+  }
+  return cachedInstallationId;
 }
 
-/**
- * Get the user's unit system preference (imperial vs. metric).
- * Based on locale or user settings.
- */
-function getUnitSystem(): 'imperial' | 'metric' {
-  // TODO: Detect from locale or user settings
-  // For now, return based on region
-  return 'imperial'; // US, UK, etc.
-}
+/** Exposed so callers (resolve-state.ts, onboarding) can check for an existing payload without a new cycle. */
+export { readPayload };

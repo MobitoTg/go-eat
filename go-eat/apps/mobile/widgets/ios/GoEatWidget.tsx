@@ -1,415 +1,109 @@
 /**
- * T050, T052: iOS Home Screen Widget View (SwiftUI via expo-widgets)
+ * T050/T050a/T052/T053a: iOS home screen widget, via `expo-widgets` (research R1).
  *
- * This is a render-only SwiftUI view. It reads WidgetPayload from App Group shared storage
- * and displays one of six states:
+ * This is genuinely TSX, but it does NOT run as JavaScript on device: the `'widget'` directive
+ * marks this component for Continuous Native Generation to compile to a native SwiftUI WidgetKit
+ * extension at build time. There is no React runtime inside the widget — every string and URL
+ * arrives pre-computed via `WidgetPayload`; this file only decides which `@expo/ui` primitives
+ * paint `widgetContentFor`'s output. The same `createWidget(...)` call below is also the app-side
+ * handle: `apps/mobile/src/cycle/write-payload.ts`'s caller imports this module's default export
+ * and calls `.updateSnapshot(payload)` after every cycle and every refresh.
  *
- * 1. `suggestion` — Restaurant name, cuisine, rating, distance, and a TAP FOR DIRECTIONS button
- * 2. `permission_required` — Prompt to enable location permission
- * 3. `no_results` — Honest message: "Nothing worth recommending nearby"
- * 4. `all_filtered` — "Your preferences filtered out all results"
- * 5. `stale` — Last known suggestion with a "STALE" indicator
- * 6. `loading` — "Finding a restaurant..." with spinner
+ * State → text/action/glyph selection lives in `../../src/widget/content.ts`, shared with the
+ * Android widget, so the two implementations can diverge only in layout (plan.md: "the two widgets
+ * duplicate layout, never values").
  *
- * **Principle I**: Widget is the product. Tapping opens Maps to the restaurant, never the app.
- * **Principle VI**: Only semantic tokens (generated from design-tokens). No hex values.
- * **FR-005**: Refresh button (when multiple items) advances cursor via App Intent, no app launch.
- * **FR-040**: Snapshots only; no hover, focus, pressed, or interactive states.
- *
- * Generated colors live in `../generated/ios/Colors.xcassets`. They're indexed in Swift as:
- * `Color("text.primary")`, `Color("status.warning")`, etc.
+ * Tap-through (FR-023) uses `widgetURL` — a widget supports exactly one, a good structural fit for
+ * "exactly one restaurant, exactly one action" (Principle II). The refresh control (FR-005,
+ * FR-016) is a `Button` identified by `target="refresh"`: a widget-directive component cannot run
+ * an `onPress` callback itself (no JS runtime), so the tap is delivered to the APP process via
+ * `addUserInteractionListener` (`../../src/widget/ios-refresh.ts`), which does the actual cursor
+ * advance and calls `.updateSnapshot()` — no network call, and per Expo's documented interactive-
+ * widget model, no app launch.
  */
 
-import SwiftUI
-import WidgetKit
+import { Button, HStack, Text, VStack } from '@expo/ui/swift-ui';
+import { background, font, foregroundStyle, padding, widgetURL } from '@expo/ui/swift-ui/modifiers';
+import { createWidget, type WidgetEnvironment } from 'expo-widgets';
+import type { WidgetPayload } from '@go-eat/contract-types';
+import { color } from '@go-eat/design-tokens/tokens';
 
-/**
- * T050: Main widget entry point.
- *
- * The widget will render whichever of the six views is appropriate.
- */
-@main
-struct GoEatWidget: Widget {
-  let kind: String = "GoEatWidget"
+import { widgetContentFor, type WidgetContent } from '../../src/widget/content';
 
-  var body: some WidgetConfiguration {
-    StaticConfiguration(kind: kind, provider: TimelineProvider()) { entry in
-      GoEatWidgetView(payload: entry.payload)
-    }
-    .configurationDisplayName("Go-Eat")
-    .description("One restaurant. No list.")
-    .supportedFamilies([.systemSmall])
-  }
+export interface GoEatWidgetProps {
+  payload: WidgetPayload;
 }
 
 /**
- * T050: Timeline provider (reads shared storage).
- *
- * In production, this is updated periodically (every 30 minutes, per app.config.ts).
- * The widget snapshots are deterministic (no network calls here; API is called by the app).
+ * Non-hue glyphs (FR-038, research R11): plain characters rather than an icon font, so tinted
+ * rendering — which strips all hue to a single tint — still reads as six visibly different marks.
  */
-struct TimelineProvider: TimelineProvider {
-  func placeholder(in context: Context) -> SimpleEntry {
-    SimpleEntry(
-      payload: WidgetPayload(
-        state: "loading",
-        item: nil,
-        items: [],
-        cycleId: "",
-        seed: "",
-        issuedAt: ISO8601DateFormatter().string(from: Date()),
-        updatedAt: ISO8601DateFormatter().string(from: Date()),
-        cursor: 0,
-        refreshEnabled: false,
-        batchSize: 0,
-        isStale: false
-      )
-    )
-  }
+const GLYPHS: Record<WidgetContent['glyph'], string> = {
+  plate: '🍽',
+  clock: '🕐',
+  'pin-slash': '📍',
+  info: 'ⓘ',
+  filter: '⚙',
+  spinner: '⟳',
+};
 
-  func getSnapshot(in context: Context, completion: @escaping (SimpleEntry) -> Void) {
-    if let payload = readPayload(from: context.family) {
-      completion(SimpleEntry(payload: payload))
-    } else {
-      completion(placeholder(in: context))
-    }
-  }
+const GoEatWidget = (props: GoEatWidgetProps, environment: WidgetEnvironment) => {
+  'widget';
 
-  func getTimeline(in context: Context, completion: @escaping (Timeline<SimpleEntry>) -> Void) {
-    var entries: [SimpleEntry] = []
-    if let payload = readPayload(from: context.family) {
-      entries.append(SimpleEntry(payload: payload))
-    } else {
-      entries.append(placeholder(in: context))
-    }
+  const theme = environment.colorScheme === 'dark' ? 'dark' : 'light';
+  const content = widgetContentFor(props.payload);
 
-    // Next update in 30 minutes (matching batchTrustSeconds)
-    let nextUpdate = Calendar.current.date(byAdding: .minute, value: 30, to: Date())!
-    let timeline = Timeline(entries: entries, policy: .after(nextUpdate))
-    completion(timeline)
-  }
+  return (
+    <VStack
+      modifiers={[
+        // VI.6: the widget paints its own opaque base — contrast is never computed against
+        // whatever wallpaper happens to sit behind it.
+        background(color(theme, 'surface.base')),
+        padding({ all: 12 }),
+        // A widget supports exactly one widgetURL. Skipped when the refresh button is shown, so a
+        // tap on the surrounding VStack can never race with the button's own target.
+        ...(content.tapUrl && !content.showRefresh ? [widgetURL(content.tapUrl)] : []),
+      ]}
+    >
+      <HStack>
+        <Text modifiers={[font({ size: 16 })]}>{GLYPHS[content.glyph]}</Text>
+        <Text modifiers={[font({ weight: 'bold', size: 15 }), foregroundStyle(color(theme, 'text.primary'))]}>
+          {content.title}
+        </Text>
+      </HStack>
 
-  /**
-   * Read WidgetPayload from App Group shared storage.
-   * Falls back to loading state if read fails.
-   */
-  private func readPayload(from family: WidgetFamily) -> WidgetPayload? {
-    guard let defaults = UserDefaults(suiteName: "group.app.goeat.client") else {
-      return nil
-    }
+      {content.subtitle ? (
+        <Text modifiers={[font({ size: 13 }), foregroundStyle(color(theme, 'text.secondary'))]}>
+          {content.subtitle}
+        </Text>
+      ) : null}
 
-    guard let data = defaults.data(forKey: "widget_payload") else {
-      return nil
-    }
+      {content.actionLabel && content.state === 'stale' ? (
+        // `status.warning` is a TEXT-role token (verified against surface.base only) — rendered as
+        // colored text on the normal background, never as a fill. There is no verified
+        // "text-on-warning" pairing in the semantic map (VI.5).
+        <Text modifiers={[font({ weight: 'bold', size: 12 }), foregroundStyle(color(theme, 'status.warning'))]}>
+          {content.actionLabel}
+        </Text>
+      ) : null}
 
-    do {
-      let payload = try JSONDecoder().decode(WidgetPayload.self, from: data)
-      return payload
-    } catch {
-      // Payload corrupted or unparseable; show loading
-      return nil
-    }
-  }
-}
+      {content.actionLabel && content.state !== 'stale' ? (
+        <Text
+          modifiers={[
+            font({ weight: 'bold', size: 12 }),
+            background(color(theme, 'accent.fill')),
+            foregroundStyle(color(theme, 'accent.onFill')),
+          ]}
+        >
+          {content.actionLabel}
+        </Text>
+      ) : null}
 
-/**
- * T050: Simple timeline entry.
- */
-struct SimpleEntry: TimelineEntry {
-  let date = Date()
-  let payload: WidgetPayload
-}
+      {content.showRefresh ? (
+        <Button label="Next" target="refresh" modifiers={[foregroundStyle(color(theme, 'text.secondary'))]} />
+      ) : null}
+    </VStack>
+  );
+};
 
-/**
- * T050, T052: Main widget view (renders all six states).
- *
- * Each state is a distinct SwiftUI view. The choice of which to show is deterministic
- * (no runtime logic here beyond branching on payload.state).
- */
-struct GoEatWidgetView: View {
-  let payload: WidgetPayload
-
-  var body: some View {
-    ZStack {
-      // T052: Background always surface.base (opaque, never wallpaper)
-      Color("surface.base").ignoresSafeArea()
-
-      VStack(spacing: 8) {
-        switch payload.state {
-        case "suggestion":
-          SuggestionStateView(payload: payload)
-
-        case "permission_required":
-          PermissionRequiredStateView()
-
-        case "no_results":
-          NoResultsStateView()
-
-        case "all_filtered":
-          AllFilteredStateView()
-
-        case "stale":
-          StaleStateView(payload: payload)
-
-        case "loading":
-          LoadingStateView()
-
-        default:
-          LoadingStateView() // Fallback
-        }
-      }
-      .padding(16)
-    }
-  }
-}
-
-/**
- * T050: Suggestion state — show restaurant, cuisine, rating, distance.
- */
-struct SuggestionStateView: View {
-  let payload: WidgetPayload
-
-  var body: some View {
-    VStack(alignment: .leading, spacing: 6) {
-      // Restaurant name (truncated to 60 chars by backend)
-      Text(payload.item?.name ?? "")
-        .font(.system(size: 16, weight: .semibold))
-        .foregroundColor(Color("text.primary"))
-        .lineLimit(1)
-
-      // Cuisine, rating, distance
-      Text(descriptionText)
-        .font(.system(size: 13, weight: .regular))
-        .foregroundColor(Color("text.primary"))
-        .lineLimit(1)
-
-      Spacer()
-
-      // Tap for directions button (links to Maps)
-      Link(destination: mapURL) {
-        Text("TAP FOR DIRECTIONS")
-          .font(.system(size: 12, weight: .semibold))
-          .foregroundColor(Color("accent.onFill"))
-          .frame(maxWidth: .infinity)
-          .padding(.vertical, 8)
-          .background(Color("accent.fill"))
-          .cornerRadius(6)
-      }
-    }
-    .frame(maxHeight: .infinity, alignment: .topLeading)
-  }
-
-  private var descriptionText: String {
-    let parts: [String] = [
-      payload.item?.cuisineLabel ?? "Restaurant",
-      "\(payload.item?.rating ?? 0, specifier: "%.1f") ⭐",
-      payload.item?.distance ?? "",
-    ]
-    return parts.filter { !$0.isEmpty }.joined(separator: " · ")
-  }
-
-  private var mapURL: URL {
-    // Prefer listingUrl (direct to place); fall back to fallbackUrl (search)
-    if let urlString = payload.item?.listingUrl, let url = URL(string: urlString) {
-      return url
-    }
-    if let urlString = payload.item?.fallbackUrl, let url = URL(string: urlString) {
-      return url
-    }
-    // Absolute fallback (should never happen in production)
-    return URL(string: "https://maps.apple.com/")!
-  }
-}
-
-/**
- * T050: Permission required state.
- */
-struct PermissionRequiredStateView: View {
-  var body: some View {
-    VStack(alignment: .leading, spacing: 8) {
-      Text("Enable Location")
-        .font(.system(size: 14, weight: .semibold))
-        .foregroundColor(Color("text.secondary"))
-
-      Spacer()
-
-      Link(destination: URL(string: UIApplication.openSettingsURLString)!) {
-        Text("SETTINGS")
-          .font(.system(size: 12, weight: .semibold))
-          .foregroundColor(Color("text.primary"))
-          .frame(maxWidth: .infinity)
-          .padding(.vertical, 8)
-          .background(Color("status.warning"))
-          .cornerRadius(6)
-      }
-    }
-    .frame(maxHeight: .infinity, alignment: .topLeading)
-  }
-}
-
-/**
- * T050: No results state.
- */
-struct NoResultsStateView: View {
-  var body: some View {
-    VStack(alignment: .leading, spacing: 8) {
-      HStack(spacing: 8) {
-        Image(systemName: "info.circle")
-          .foregroundColor(Color("text.secondary"))
-          .font(.system(size: 16))
-
-        Text("Nothing worth recommending nearby")
-          .font(.system(size: 14, weight: .regular))
-          .foregroundColor(Color("text.secondary"))
-          .lineLimit(2)
-      }
-
-      Spacer()
-    }
-    .frame(maxHeight: .infinity, alignment: .topLeading)
-  }
-}
-
-/**
- * T050: All filtered state.
- */
-struct AllFilteredStateView: View {
-  var body: some View {
-    VStack(alignment: .leading, spacing: 6) {
-      HStack(spacing: 6) {
-        Image(systemName: "slider.horizontal.3")
-          .foregroundColor(Color("text.secondary"))
-          .font(.system(size: 14))
-
-        Text("All preferences filtered out")
-          .font(.system(size: 14, weight: .regular))
-          .foregroundColor(Color("text.secondary"))
-          .lineLimit(2)
-      }
-
-      Text("Adjust settings in the app")
-        .font(.system(size: 12, weight: .regular))
-        .foregroundColor(Color("text.tertiary"))
-        .lineLimit(1)
-
-      Spacer()
-    }
-    .frame(maxHeight: .infinity, alignment: .topLeading)
-  }
-}
-
-/**
- * T050: Stale state — show last known suggestion with a stale indicator.
- */
-struct StaleStateView: View {
-  let payload: WidgetPayload
-
-  var body: some View {
-    VStack(alignment: .leading, spacing: 6) {
-      // Restaurant name
-      Text(payload.item?.name ?? "")
-        .font(.system(size: 16, weight: .semibold))
-        .foregroundColor(Color("text.primary"))
-        .lineLimit(1)
-
-      // Cuisine, rating, distance
-      Text(descriptionText)
-        .font(.system(size: 13, weight: .regular))
-        .foregroundColor(Color("text.primary"))
-        .lineLimit(1)
-
-      // Stale indicator badge
-      HStack(spacing: 4) {
-        Image(systemName: "exclamationmark.triangle.fill")
-          .font(.system(size: 10))
-        Text("STALE")
-          .font(.system(size: 10, weight: .semibold))
-      }
-      .foregroundColor(Color("text.inverse"))
-      .padding(.horizontal, 8)
-      .padding(.vertical, 4)
-      .background(Color("status.warning"))
-      .cornerRadius(4)
-
-      Spacer()
-
-      Link(destination: mapURL) {
-        Text("TAP FOR DIRECTIONS")
-          .font(.system(size: 12, weight: .semibold))
-          .foregroundColor(Color("accent.onFill"))
-          .frame(maxWidth: .infinity)
-          .padding(.vertical, 8)
-          .background(Color("accent.fill"))
-          .cornerRadius(6)
-      }
-    }
-    .frame(maxHeight: .infinity, alignment: .topLeading)
-  }
-
-  private var descriptionText: String {
-    let parts: [String] = [
-      payload.item?.cuisineLabel ?? "Restaurant",
-      "\(payload.item?.rating ?? 0, specifier: "%.1f") ⭐",
-      payload.item?.distance ?? "",
-    ]
-    return parts.filter { !$0.isEmpty }.joined(separator: " · ")
-  }
-
-  private var mapURL: URL {
-    if let urlString = payload.item?.listingUrl, let url = URL(string: urlString) {
-      return url
-    }
-    if let urlString = payload.item?.fallbackUrl, let url = URL(string: urlString) {
-      return url
-    }
-    return URL(string: "https://maps.apple.com/")!
-  }
-}
-
-/**
- * T050: Loading state.
- */
-struct LoadingStateView: View {
-  var body: some View {
-    VStack(alignment: .leading, spacing: 8) {
-      HStack(spacing: 8) {
-        ProgressView()
-          .tint(Color("accent.fill"))
-
-        Text("Finding a restaurant...")
-          .font(.system(size: 14, weight: .regular))
-          .foregroundColor(Color("text.tertiary"))
-      }
-
-      Spacer()
-    }
-    .frame(maxHeight: .infinity, alignment: .topLeading)
-  }
-}
-
-#Preview {
-  GoEatWidgetView(
-    payload: WidgetPayload(
-      state: "suggestion",
-      item: SuggestionItem(
-        placeId: "test_place_id",
-        name: "Mario's Trattoria",
-        cuisineLabel: "Italian",
-        rating: 4.5,
-        reviewCount: "1.2k",
-        distance: "0.5 mi",
-        listingUrl: "https://maps.google.com/?cid=test",
-        fallbackUrl: "https://maps.google.com/search/Mario"
-      ),
-      items: [],
-      cycleId: "cycle_123",
-      seed: "seed_123",
-      issuedAt: ISO8601DateFormatter().string(from: Date()),
-      updatedAt: ISO8601DateFormatter().string(from: Date()),
-      cursor: 0,
-      refreshEnabled: false,
-      batchSize: 1,
-      isStale: false
-    )
-  )
-}
+export default createWidget<GoEatWidgetProps>('GoEatWidget', GoEatWidget);

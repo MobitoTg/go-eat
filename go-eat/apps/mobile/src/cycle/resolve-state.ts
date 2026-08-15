@@ -1,112 +1,67 @@
 /**
- * T049: Client-side widget state resolution.
+ * T049: Client-side widget state resolution (FR-004).
  *
- * The widget can be in one of six states:
- * 1. `suggestion` — showing a restaurant
- * 2. `permission_required` — location permission not granted
- * 3. `no_results` — no qualifying restaurants nearby
- * 4. `all_filtered` — all candidates filtered out by preferences
- * 5. `stale` — last known suggestion, but may be outdated
- * 6. `loading` — cycle in progress, waiting for response
- *
- * These are resolved client-side based on:
- * - Location permission status
- * - Presence of cached batch
- * - Staleness of cached batch
- * - API response
- *
- * FR-004: "The widget honestly reports its state rather than showing a blank or generic placeholder."
+ * Resolved from: location permission status, the presence of a cached batch, and whether that
+ * batch is still valid (`invalidation.ts`'s `evaluateBatch`). This module does not itself start a
+ * new cycle or write a payload — it only decides which of the six states currently applies, so
+ * callers (app foreground, widget reload hooks) can act on the result.
  */
 
-import type { WidgetPayload, WidgetState } from '@go-eat/contract-types';
-import { getLocationPermissionStatus } from '../location/index.js';
-import { readPayload } from '../storage/shared-storage.js';
-import { hasDrifted, isStale } from './invalidation.js';
+import type { WidgetState } from '@go-eat/contract-types';
+import type { Platform } from '../storage/shared-storage.js';
 
-/**
- * Resolve the current widget state based on app and system state.
- *
- * This runs frequently (widget reload, app foregrounding, explicit refresh)
- * and determines what the widget should display.
- */
-export async function resolveWidgetState(): Promise<WidgetState> {
-  // Step 1: Check location permission
-  const permStatus = await getLocationPermissionStatus();
-  if (permStatus !== 'granted') {
-    return 'permission_required';
-  }
+import { getPermissionState } from '../location/index.js';
+import { readBatch, readPayload } from '../storage/shared-storage.js';
+import { evaluateBatch } from './invalidation.js';
 
-  // Step 2: Check for cached batch
-  const payload = await readPayload();
-  if (!payload) {
-    return 'loading'; // No batch yet; cycle starting
-  }
-
-  // Step 3: Check if batch is valid
-  // - Is location anchor still valid? (no drift)
-  // - Is batch still fresh? (within trust window)
-  if (payload.state === 'suggestion') {
-    if (payload.isStale === true) {
-      return 'stale'; // Show last known + stale indicator
-    }
-
-    if (hasDrifted(payload)) {
-      // Location has moved; need a new cycle
-      return 'loading';
-    }
-
-    return 'suggestion'; // All good
-  }
-
-  // Step 4: Map batch states
-  if (payload.state === 'no_results' || payload.state === 'all_filtered') {
-    return payload.state; // Return as-is
-  }
-
-  // Step 5: Loading states (client-side)
-  // (These are typically set when a cycle is starting)
-  if (payload.state === 'loading') {
-    return 'loading';
-  }
-
-  // Fallback
-  return 'loading';
+export interface ResolveStateInput {
+  platform: Platform;
+  /** `null` when a fix could not be obtained — never treated as drift (invalidation.ts). */
+  currentLocation: { lat: number; lng: number } | null;
+  currentPreferencesHash: string;
+  now?: Date;
 }
 
-/**
- * Get a user-friendly message for the current state.
- * Used by the app to explain what's happening.
- */
+export async function resolveWidgetState(input: ResolveStateInput): Promise<WidgetState> {
+  const permission = await getPermissionState();
+  if (permission !== 'granted') return 'permission_required';
+
+  const [batch, payload] = await Promise.all([readBatch(input.platform), readPayload(input.platform)]);
+  if (!batch || !payload) return 'loading';
+
+  if (batch.items.length === 0) {
+    return payload.state === 'all_filtered' ? 'all_filtered' : 'no_results';
+  }
+
+  const validity = evaluateBatch({
+    anchor: batch.anchor,
+    issuedAt: batch.issuedAt,
+    preferencesHash: batch.preferencesHash,
+    currentLocation: input.currentLocation,
+    currentPreferencesHash: input.currentPreferencesHash,
+    now: input.now ?? new Date(),
+  });
+
+  // An invalid batch means the NEXT read needs a fresh cycle, not that the current one is wrong to
+  // show — the widget renders the last-known suggestion with a stale indicator rather than
+  // blanking (constitution: "honest states over empty ones"); `start-cycle.ts` is what corrects it.
+  return validity.valid ? 'suggestion' : 'stale';
+}
+
+/** A user-friendly message for the current state, for the app to display when it opens on one. */
 export function getStateMessage(state: WidgetState): string {
   switch (state) {
     case 'suggestion':
-      return ''; // Show the suggestion; no message needed
-
+      return '';
     case 'permission_required':
       return 'Go-Eat needs location permission to find restaurants near you.';
-
     case 'no_results':
       return 'Nothing worth recommending nearby.';
-
     case 'all_filtered':
       return 'Your preferences filtered out all results. Adjust them to see suggestions.';
-
     case 'stale':
       return 'Last suggestion (may be outdated).';
-
     case 'loading':
       return 'Finding a restaurant for you...';
-
-    default:
-      // TypeScript ensures this is unreachable
-      return 'Unable to load suggestion';
   }
-}
-
-/**
- * Determine if the widget should show a refresh control.
- * (Only in 'suggestion' state with multiple items.)
- */
-export function shouldShowRefreshControl(state: WidgetState, batchSize: number): boolean {
-  return state === 'suggestion' && batchSize > 1;
 }

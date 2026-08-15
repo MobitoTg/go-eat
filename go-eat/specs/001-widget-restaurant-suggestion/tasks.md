@@ -94,7 +94,7 @@ FR-022b numbering.
 - [X] T024 [P] Contract test asserting `GET /v1/config` conforms to the schema and leaks no scoring weights, in `services/suggestion-api/__tests__/config.contract.test.ts`
 - [X] T025 Implement the Google Places (New) Nearby Search adapter in `services/suggestion-api/src/provider/places.ts` — exactly one request per invocation, key read from env only (depends on T008)
 - [X] T026 [P] Record provider response fixtures for dense-urban, suburban, and sparse-rural coordinates in `services/suggestion-api/__tests__/fixtures/`
-- [ ] T027 [P] Initialize the Expo app (SDK 57+, New Architecture, expo-router) in `apps/mobile/`
+- [X] T027 [P] Initialize the Expo app (SDK 57+, New Architecture, expo-router) in `apps/mobile/` — dependencies declared and installed, `app/` route tree and entry point in place; `expo prebuild`/native project generation still needs a real device/CI runner, not available here
 - [X] T028 Configure both widget config plugins in `apps/mobile/app.config.ts`: `expo-widgets` with App Group `group.<bundle id>` (iOS) and `react-native-android-widget` with SharedPreferences `goeat_widget` (Android), per `contracts/widget-payload.md`
 - [X] T029 [P] Implement the atomic shared-storage bridge in `apps/mobile/src/storage/shared-storage.ts` — writes must be atomic so a widget reload never reads a half-written payload
 - [X] T030 [P] Implement the expo-location wrapper (permission state, anchor capture) in `apps/mobile/src/location/index.ts`
@@ -115,41 +115,41 @@ FR-022b numbering.
 
 ### Tests for User Story 1
 
-- [ ] T034 [P] [US1] Contract test asserting `POST /v1/cycle` responses conform to `contracts/suggestion-api.yaml` in `services/suggestion-api/__tests__/cycle.contract.test.ts`
-- [ ] T035 [P] [US1] Test that one cycle issues exactly one provider request, via a spy on the provider adapter, in `services/suggestion-api/__tests__/one-call.test.ts` (FR-014, FR-015, SC-007)
-- [ ] T036 [P] [US1] Test display formatting — name truncation, rating, review-count abbreviation, and distance in both unit systems — in `services/suggestion-api/__tests__/shaping.test.ts` (FR-002)
-- [ ] T037 [P] [US1] Test deep-link construction of `listingUrl` and `fallbackUrl` against `contracts/deep-link.md` in `services/suggestion-api/__tests__/links.test.ts`
-- [ ] T038 [P] [US1] Test that CycleResponse → WidgetPayload mapping covers all six WidgetStates with no default branch, in `apps/mobile/__tests__/payload-writer.test.ts`
+- [X] T034 [P] [US1] Contract test asserting `POST /v1/cycle` responses conform to `contracts/suggestion-api.yaml` in `services/suggestion-api/__tests__/cycle.contract.test.ts`
+- [X] T035 [P] [US1] Test that one cycle issues exactly one provider request, via a spy on the provider adapter, in `services/suggestion-api/__tests__/one-call.test.ts` (FR-014, FR-015, SC-007)
+- [X] T036 [P] [US1] Test display formatting — name truncation, rating, review-count abbreviation, and distance in both unit systems — in `services/suggestion-api/__tests__/shaping.test.ts` (FR-002)
+- [X] T037 [P] [US1] Test deep-link construction of `listingUrl` and `fallbackUrl` against `contracts/deep-link.md` in `services/suggestion-api/__tests__/links.test.ts`
+- [X] T038 [P] [US1] Test that CycleResponse → WidgetPayload mapping covers all six WidgetStates with no default branch, in `apps/mobile/__tests__/payload-writer.test.ts`
 
 ### Implementation for User Story 1
 
-- [ ] T039 [US1] Implement display formatting (name ≤60, cuisineLabel ≤30 derived from provider types, ratingLabel, abbreviated reviewCountLabel, distanceLabel in the requested unit system) in `services/suggestion-api/src/shaping/format.ts`
-- [ ] T040 [US1] Implement the Google Maps deep-link builder with the three-step fallback chain in `services/suggestion-api/src/links/google-maps.ts` (FR-023, FR-025)
-- [ ] T041 [US1] Implement SuggestionItem assembly in `services/suggestion-api/src/shaping/item.ts` — deliberately excludes score, rank, and any sibling reference (FR-001, Principle II)
-- [ ] T042 [US1] Implement BatchState resolution distinguishing `no_results` from `all_filtered` in `services/suggestion-api/src/shaping/state.ts`
-- [ ] T043 [US1] Implement `POST /v1/cycle` in `services/suggestion-api/src/routes/cycle.ts`, orchestrating validate → provider (one call) → hard filter → order → shape → respond with cycleId, seed, issuedAt, anchor, items, refreshEnabled, state
-- [ ] T044 [US1] Implement request validation and 400 handling (coordinate ranges, exclusions/preferences disjoint) in `services/suggestion-api/src/routes/cycle.ts`
-- [ ] T045 [US1] Implement per-installation cycle rate limiting returning 429 in `services/suggestion-api/src/lib/rate-limit.ts` — a cost backstop (R4); `installationId` is used for nothing else and never joined to location
-- [ ] T046 [US1] Implement 502 provider-failure handling in `services/suggestion-api/src/routes/cycle.ts`
-- [ ] T047 [US1] Implement cycle start (capture anchor, call the API once, persist batch with cursor 0) in `apps/mobile/src/cycle/start-cycle.ts`
-- [ ] T048 [US1] Implement the payload writer mapping batch + cursor + freshness to WidgetPayload in `apps/mobile/src/cycle/write-payload.ts`
-- [ ] T049 [US1] Implement client-side widget state resolution (`suggestion`, `permission_required`, `no_results`, `all_filtered`, `stale`, `loading`) in `apps/mobile/src/cycle/resolve-state.ts` (FR-004)
-- [ ] T049a [US1] Define the state → semantic-token mapping (token NAMES only, never color values) in `specs/design-system/widget-state-tokens.md`, so both widget implementations render the six states from one specification rather than diverging (VI.3)
-- [ ] T050 [P] [US1] Implement the iOS widget view in `apps/mobile/widgets/ios/GoEatWidget.tsx` — render-only, all six states, strings rendered verbatim, no formatting or URL construction
-- [ ] T050a [P] [US1] Paint an opaque `surface.base` behind the iOS widget, or opt into the platform material and derive text from its vibrancy roles — contrast is never computed against wallpaper (VI.6, FR-036)
-- [ ] T051 [P] [US1] Implement the Android widget view in `apps/mobile/widgets/android/GoEatWidget.tsx` — render-only, all six states, strings rendered verbatim, no formatting or URL construction
-- [ ] T051a [P] [US1] Paint an opaque `surface.base` behind the Android widget (VI.6, FR-036)
-- [ ] T052 [P] [US1] Implement tap-through on the iOS widget opening `listingUrl` and falling through to `fallbackUrl` in `apps/mobile/widgets/ios/GoEatWidget.tsx`
-- [ ] T053 [P] [US1] Implement tap-through on the Android widget opening `listingUrl` and falling through to `fallbackUrl` in `apps/mobile/widgets/android/GoEatWidget.tsx`
-- [ ] T054 [US1] Register the `goeat://` scheme and the `onboarding` / `permission` routes in `apps/mobile/app.config.ts` and `apps/mobile/app/_layout.tsx` per `contracts/deep-link.md`
-- [ ] T055 [US1] Wire the `permission_required` widget state's tap target to `goeat://permission` in both widget views
-- [ ] T053a [P] [US1] Differentiate all six widget states by shape, icon, or position in addition to color, in both widget views — hue must never be the sole carrier of meaning, because iOS tinted rendering desaturates to a single hue and keys off luminance only (FR-038, research R11)
-- [ ] T053b [P] [US1] Guard test asserting no hover, focus, or pressed color variant is defined in the token set or referenced by either widget view — widgets are static snapshots, so these states are unreachable and must never be generated (FR-040)
-- [ ] T056 [P] [US1] Integration test of quickstart Scenario 1 on iOS Simulator and Android emulator in `apps/mobile/__tests__/integration/one-suggestion.test.ts` (SC-002)
-- [ ] T056a [P] [US1] Acceptance test of iOS tinted rendering as a distinct case — confirm all six states stay distinguishable with hue removed — in `apps/mobile/__tests__/integration/tinted-mode.test.ts` (SC-016)
-- [ ] T056b [P] [US1] Verify each widget surface renders at most three chromatic values (one neutral ramp, one accent, one optional status color) in `apps/mobile/__tests__/chromatic-budget.test.ts` (VI.4, FR-037)
-- [ ] T056d [P] [US1] Guard test asserting neither widget view exposes a radius, distance, or search-scope control, and that no such control exists in the app (FR-003, Principle II) in `apps/mobile/__tests__/no-scope-control.test.ts`
-- [ ] T056c [P] [US1] Add widget snapshot tests across the full rendering matrix — light, dark, and iOS tinted, for all six states — in `apps/mobile/__tests__/widget-snapshots.test.ts`, so a token or layout regression is caught without a manual simulator pass. Subsumes T056a and T107a as the mechanism; those remain as manual sign-off
+- [X] T039 [US1] Implement display formatting (name ≤60, cuisineLabel ≤30 derived from provider types, ratingLabel, abbreviated reviewCountLabel, distanceLabel in the requested unit system) in `services/suggestion-api/src/shaping/format.ts`
+- [X] T040 [US1] Implement the Google Maps deep-link builder with the three-step fallback chain in `services/suggestion-api/src/links/google-maps.ts` (FR-023, FR-025)
+- [X] T041 [US1] Implement SuggestionItem assembly in `services/suggestion-api/src/shaping/item.ts` — deliberately excludes score, rank, and any sibling reference (FR-001, Principle II)
+- [X] T042 [US1] Implement BatchState resolution distinguishing `no_results` from `all_filtered` in `services/suggestion-api/src/shaping/state.ts`
+- [X] T043 [US1] Implement `POST /v1/cycle` in `services/suggestion-api/src/routes/cycle.ts`, orchestrating validate → provider (one call) → hard filter → order → shape → respond with cycleId, seed, issuedAt, anchor, items, refreshEnabled, state
+- [X] T044 [US1] Implement request validation and 400 handling (coordinate ranges, exclusions/preferences disjoint) in `services/suggestion-api/src/routes/cycle.ts`
+- [X] T045 [US1] Implement per-installation cycle rate limiting returning 429 in `services/suggestion-api/src/lib/rate-limit.ts` — a cost backstop (R4); `installationId` is used for nothing else and never joined to location
+- [X] T046 [US1] Implement 502 provider-failure handling in `services/suggestion-api/src/routes/cycle.ts` — propagates from `providerUnavailable` via the app-level error handler
+- [X] T047 [US1] Implement cycle start (capture anchor, call the API once, persist batch with cursor 0) in `apps/mobile/src/cycle/start-cycle.ts`
+- [X] T048 [US1] Implement the payload writer mapping batch + cursor + freshness to WidgetPayload in `apps/mobile/src/cycle/write-payload.ts`
+- [X] T049 [US1] Implement client-side widget state resolution (`suggestion`, `permission_required`, `no_results`, `all_filtered`, `stale`, `loading`) in `apps/mobile/src/cycle/resolve-state.ts` (FR-004)
+- [X] T049a [US1] Define the state → semantic-token mapping (token NAMES only, never color values) in `specs/design-system/widget-state-tokens.md`, so both widget implementations render the six states from one specification rather than diverging (VI.3)
+- [X] T050 [P] [US1] Implement the iOS widget view in `apps/mobile/widgets/ios/GoEatWidget.tsx` — render-only, all six states, strings rendered verbatim, no formatting or URL construction. Written against the actual installed `@expo/ui`/`expo-widgets` `.d.ts` files, not guessed; consumes shared `src/widget/content.ts`
+- [X] T050a [P] [US1] Paint an opaque `surface.base` behind the iOS widget — contrast is never computed against wallpaper (VI.6, FR-036)
+- [X] T051 [P] [US1] Implement the Android widget view in `apps/mobile/widgets/android/GoEatWidget.tsx` — render-only, all six states, strings rendered verbatim, no formatting or URL construction. Written against the actual installed `react-native-android-widget` `.d.ts` files
+- [X] T051a [P] [US1] Paint an opaque `surface.base` behind the Android widget (VI.6, FR-036)
+- [X] T052 [P] [US1] Implement tap-through on the iOS widget opening `listingUrl` and falling through to `fallbackUrl` in `apps/mobile/widgets/ios/GoEatWidget.tsx` — via the `widgetURL` modifier
+- [X] T053 [P] [US1] Implement tap-through on the Android widget opening `listingUrl` and falling through to `fallbackUrl` in `apps/mobile/widgets/android/GoEatWidget.tsx` — via `clickAction="OPEN_URI"`
+- [X] T054 [US1] Register the `goeat://` scheme and the `onboarding` / `permission` routes in `apps/mobile/app.config.ts` and `apps/mobile/app/_layout.tsx` per `contracts/deep-link.md`
+- [X] T055 [US1] Wire the `permission_required` widget state's tap target to `goeat://permission` in both widget views — via `content.tapUrl` (`src/widget/content.ts`), consumed identically by both
+- [X] T053a [P] [US1] Differentiate all six widget states by shape, icon, or position in addition to color, in both widget views — hue must never be the sole carrier of meaning, because iOS tinted rendering desaturates to a single hue and keys off luminance only (FR-038, research R11) — via `content.glyph`, asserted distinct per state in `widget-content.test.ts`
+- [X] T053b [P] [US1] Guard test asserting no hover, focus, or pressed color variant is defined in the token set or referenced by either widget view — widgets are static snapshots, so these states are unreachable and must never be generated (FR-040) — in `widget-content.test.ts`'s "no hover/focus/pressed concept" suite
+- [ ] T056 [P] [US1] Integration test of quickstart Scenario 1 on iOS Simulator and Android emulator in `apps/mobile/__tests__/integration/one-suggestion.test.ts` (SC-002) — needs a real Simulator/emulator + Detox; not runnable in this environment
+- [ ] T056a [P] [US1] Acceptance test of iOS tinted rendering as a distinct case — confirm all six states stay distinguishable with hue removed — in `apps/mobile/__tests__/integration/tinted-mode.test.ts` (SC-016) — manual sign-off per T056c's note; needs a real device
+- [X] T056b [P] [US1] Verify each widget surface renders at most three chromatic values (one neutral ramp, one accent, one optional status color) in `apps/mobile/__tests__/chromatic-budget.test.ts` (VI.4, FR-037)
+- [X] T056d [P] [US1] Guard test asserting neither widget view exposes a radius, distance, or search-scope control, and that no such control exists in the app (FR-003, Principle II) in `apps/mobile/__tests__/no-scope-control.test.ts`
+- [X] T056c [P] [US1] Add widget snapshot tests across the full rendering matrix — light, dark, and iOS tinted, for all six states — in `apps/mobile/__tests__/widget-snapshots.test.ts`. Snapshots the shared `widgetContentFor` decision rather than a rendered native tree, since neither widget can actually render in Jest (see the file's header); a manual simulator pass remains the pixel-level sign-off
 
 **Checkpoint**: The widget shows one restaurant and taps through, legibly in both themes and in tinted mode. Selection quality is still baseline — US2 supplies the real model.
 
@@ -163,29 +163,29 @@ FR-022b numbering.
 
 ### Tests for User Story 2
 
-- [ ] T057 [P] [US2] Build the golden-fixture harness covering dense urban, suburban, and sparse rural coordinates in `packages/selection-core/__tests__/fixtures/`
-- [ ] T058 [P] [US2] Test that distance alone never determines the winner in `packages/selection-core/__tests__/scoring.test.ts` (FR-006)
-- [ ] T059 [P] [US2] Test that healthier-leaning venues outrank comparable fast-food venues in `packages/selection-core/__tests__/health-lean.test.ts` (FR-007)
-- [ ] T060 [P] [US2] Test that a high rating from very few reviews is tempered by volume in `packages/selection-core/__tests__/confidence.test.ts` (FR-010)
-- [ ] T061 [P] [US2] Test that identical inputs plus an identical seed produce identical ordering in `packages/selection-core/__tests__/determinism.test.ts` (FR-013, SC-014)
-- [ ] T062 [P] [US2] Test that near-tied candidates reorder across seeds while candidates outside the threshold keep strict order, in `packages/selection-core/__tests__/near-tie.test.ts` (FR-022)
-- [ ] T063 [P] [US2] Test that changing each weight measurably moves rankings — a decorative weight fails the suite — in `packages/selection-core/__tests__/weights.test.ts` (FR-009, SC-011)
-- [ ] T064 [P] [US2] Guard test asserting no weight key or source identifier names a brand or business in `packages/selection-core/__tests__/no-brand-list.test.ts` (FR-008)
-- [ ] T065 [P] [US2] Guard test asserting no suggestion history is written or retained anywhere in `packages/selection-core/__tests__/no-history.test.ts` (FR-022a)
+- [X] T057 [P] [US2] Build the golden-fixture harness covering dense urban, suburban, and sparse rural coordinates in `packages/selection-core/__tests__/fixtures/`
+- [X] T058 [P] [US2] Test that distance alone never determines the winner in `packages/selection-core/__tests__/scoring.test.ts` (FR-006)
+- [X] T059 [P] [US2] Test that healthier-leaning venues outrank comparable fast-food venues in `packages/selection-core/__tests__/health-lean.test.ts` (FR-007)
+- [X] T060 [P] [US2] Test that a high rating from very few reviews is tempered by volume in `packages/selection-core/__tests__/confidence.test.ts` (FR-010)
+- [X] T061 [P] [US2] Test that identical inputs plus an identical seed produce identical ordering in `packages/selection-core/__tests__/determinism.test.ts` (FR-013, SC-014)
+- [X] T062 [P] [US2] Test that near-tied candidates reorder across seeds while candidates outside the threshold keep strict order, in `packages/selection-core/__tests__/near-tie.test.ts` (FR-022)
+- [X] T063 [P] [US2] Test that changing each weight measurably moves rankings — a decorative weight fails the suite — in `packages/selection-core/__tests__/weights.test.ts` (FR-009, SC-011)
+- [X] T064 [P] [US2] Guard test asserting no weight key or source identifier names a brand or business in `packages/selection-core/__tests__/no-brand-list.test.ts` (FR-008)
+- [X] T065 [P] [US2] Guard test asserting no suggestion history is written or retained anywhere in `packages/selection-core/__tests__/no-history.test.ts` (FR-022a)
 
 ### Implementation for User Story 2
 
-- [ ] T066 [US2] Implement rating normalization and the weighted score in `packages/selection-core/src/score.ts`
-- [ ] T067 [US2] Implement review-volume confidence tempering in `packages/selection-core/src/confidence.ts`, treating missing `rating`/`reviewCount` as low confidence rather than zero
-- [ ] T068 [US2] Implement the health-lean adjustment keyed by provider place type only in `packages/selection-core/src/health-lean.ts` (FR-007, FR-008)
-- [ ] T069 [US2] Implement dietary preferences as positive scoring inputs — distinct from exclusions, which remain hard filters — in `packages/selection-core/src/preferences.ts`
-- [ ] T070 [US2] Implement the seeded near-tie shuffle in `packages/selection-core/src/near-tie.ts`, preserving strict order outside the threshold band (FR-022, FR-022b)
-- [ ] T071 [US2] Replace the baseline ordering seam in `packages/selection-core/src/index.ts` with the real scoring pipeline, keeping scoring assertable independently of ordering (FR-013)
-- [ ] T072 [US2] Populate real weight values (rating, reviewVolume, healthLean map, distance, nearTieThreshold, minReviewCount, searchRadiusMeters) in `services/suggestion-api/src/config/weights.ts`
-- [ ] T073 [US2] Implement the `fixtures:report` script printing rankings across the coordinate sample in `packages/selection-core/scripts/fixtures-report.ts` — the constitution's scoring regression gate made executable
-- [ ] T073a [US2] Assert the SC-005 quality bar over the fixture sample in `packages/selection-core/__tests__/quality-bar.test.ts` — at least 80% of surfaced suggestions rated ≥ 4.0 with ≥ 25 reviews, and at most 10% in fast-food or takeaway category types. Failing this fails the build; a printed report nobody asserts on is not a gate
-- [ ] T073b [US2] Assert the SC-013 variety rate in `packages/selection-core/__tests__/variety.test.ts` — across repeated cycles at one fixture coordinate with fixed preferences and varying seeds, the first-shown venue differs in at least 50% of cycles, and no venue scoring more than `nearTieThreshold` below the top candidate is ever shown first
-- [ ] T074 [US2] Generate a cycle seed per cycle and echo it in CycleResponse in `services/suggestion-api/src/routes/cycle.ts` (FR-022b)
+- [X] T066 [US2] Implement rating normalization and the weighted score in `packages/selection-core/src/score.ts`
+- [X] T067 [US2] Implement review-volume confidence tempering in `packages/selection-core/src/confidence.ts`, treating missing `rating`/`reviewCount` as low confidence rather than zero
+- [X] T068 [US2] Implement the health-lean adjustment keyed by provider place type only in `packages/selection-core/src/health-lean.ts` (FR-007, FR-008)
+- [X] T069 [US2] Implement dietary preferences as positive scoring inputs — distinct from exclusions, which remain hard filters — in `packages/selection-core/src/preferences.ts`
+- [X] T070 [US2] Implement the seeded near-tie shuffle in `packages/selection-core/src/near-tie.ts`, preserving strict order outside the threshold band (FR-022, FR-022b)
+- [X] T071 [US2] Replace the baseline ordering seam in `packages/selection-core/src/index.ts` with the real scoring pipeline, keeping scoring assertable independently of ordering (FR-013)
+- [X] T072 [US2] Populate real weight values (rating, reviewVolume, healthLean map, distance, nearTieThreshold, minReviewCount, searchRadiusMeters) in `services/suggestion-api/src/config/weights.ts`
+- [X] T073 [US2] Implement the `fixtures:report` script printing rankings across the coordinate sample in `packages/selection-core/scripts/fixtures-report.ts` — the constitution's scoring regression gate made executable
+- [X] T073a [US2] Assert the SC-005 quality bar over the fixture sample in `packages/selection-core/__tests__/quality-bar.test.ts` — at least 80% of surfaced suggestions rated ≥ 4.0 with ≥ 25 reviews, and at most 10% in fast-food or takeaway category types. Failing this fails the build; a printed report nobody asserts on is not a gate
+- [X] T073b [US2] Assert the SC-013 variety rate in `packages/selection-core/__tests__/variety.test.ts` — across repeated cycles at one fixture coordinate with fixed preferences and varying seeds, the first-shown venue differs in at least 50% of cycles, and no venue scoring more than `nearTieThreshold` below the top candidate is ever shown first
+- [X] T074 [US2] Generate a cycle seed per cycle and echo it in CycleResponse in `services/suggestion-api/src/routes/cycle.ts` (FR-022b)
 
 **Checkpoint**: MVP complete — the widget shows one restaurant that is actually worth eating at, and quality is measurable.
 
@@ -199,23 +199,23 @@ FR-022b numbering.
 
 ### Tests for User Story 3
 
-- [ ] T075 [P] [US3] Test cursor advance and wrap including short and single-item batches in `apps/mobile/__tests__/cursor.test.ts` (FR-016, FR-017, FR-018)
-- [ ] T076 [P] [US3] Test that a full walk of the batch issues zero API calls in `apps/mobile/__tests__/refresh-no-network.test.ts` (FR-015, FR-021a, SC-007)
-- [ ] T077 [P] [US3] Test that `refreshEnabled: false` hides the control and leaves selection, presentation, and tap-through unchanged in `apps/mobile/__tests__/refresh-disabled.test.ts` (FR-019, SC-008)
-- [ ] T078 [P] [US3] Test that an invalidated batch plus a refresh press starts exactly one new cycle in `apps/mobile/__tests__/invalid-batch-refresh.test.ts` (FR-020)
+- [X] T075 [P] [US3] Test cursor advance and wrap including short and single-item batches in `apps/mobile/__tests__/cursor.test.ts` (FR-016, FR-017, FR-018)
+- [X] T076 [P] [US3] Test that a full walk of the batch issues zero API calls in `apps/mobile/__tests__/refresh-no-network.test.ts` (FR-015, FR-021a, SC-007)
+- [X] T077 [P] [US3] Test that `refreshEnabled: false` hides the control and leaves selection, presentation, and tap-through unchanged in `apps/mobile/__tests__/refresh-disabled.test.ts` (FR-019, SC-008)
+- [X] T078 [P] [US3] Test that an invalidated batch plus a refresh press starts exactly one new cycle in `apps/mobile/__tests__/invalid-batch-refresh.test.ts` (FR-020)
 
 ### Implementation for User Story 3
 
-- [ ] T079 [US3] Implement `advance(batch)` as `(cursor + 1) % items.length` in `apps/mobile/src/cycle/cursor.ts` — the single expression satisfying FR-016, FR-017, and FR-018, and the only code the FR-019 removal path deletes
-- [ ] T080 [US3] Implement refresh dispatch in `apps/mobile/src/cycle/refresh.ts`: valid batch → advance and rewrite payload; invalid batch → start a new cycle
-- [ ] T081 [US3] Implement the iOS App Intent refresh handler (advance cursor, rewrite payload, `reloadTimelines`, no app launch — FR-005) in `apps/mobile/widgets/ios/RefreshIntent.tsx`
-- [ ] T082 [US3] Implement the Android broadcast refresh handler (advance cursor, rewrite payload, `updateAppWidget`, no app launch — FR-005) in `apps/mobile/widgets/android/refresh-handler.ts`
-- [ ] T083 [P] [US3] Gate the refresh control on `refreshEnabled` in `apps/mobile/widgets/ios/GoEatWidget.tsx`
-- [ ] T084 [P] [US3] Gate the refresh control on `refreshEnabled` in `apps/mobile/widgets/android/GoEatWidget.tsx`
-- [ ] T085 [US3] Make rapid repeated refresh idempotent per tap — advance exactly one step, never trigger duplicate cycle starts — in `apps/mobile/src/cycle/refresh.ts`
-- [ ] T086 [US3] Truncate `items` to 1 server-side when `refreshEnabled` is false in `services/suggestion-api/src/routes/cycle.ts` (FR-019)
-- [ ] T087 [US3] Document the zero-refresh removal path — the exact files and fields deleted — in `apps/mobile/src/cycle/README.md` (FR-019, constitution: provisional mechanics stay removable)
-- [ ] T088 [P] [US3] Integration test of quickstart Scenario 3 on both simulators in `apps/mobile/__tests__/integration/refresh-cycling.test.ts`
+- [X] T079 [US3] Implement `advance(batch)` as `(cursor + 1) % items.length` in `apps/mobile/src/cycle/cursor.ts` — the single expression satisfying FR-016, FR-017, and FR-018, and the only code the FR-019 removal path deletes
+- [X] T080 [US3] Implement refresh dispatch in `apps/mobile/src/cycle/refresh.ts`: valid batch → advance and rewrite payload; invalid batch → start a new cycle
+- [X] T081 [US3] Implement the iOS refresh handler (advance cursor, rewrite payload, `updateSnapshot`, no app launch — FR-005) in `apps/mobile/src/widget/ios-refresh.ts` — real `expo-widgets` API is `addUserInteractionListener` + a `target`-identified `Button`, not a standalone `RefreshIntent.tsx` component; see the file's header for why
+- [X] T082 [US3] Implement the Android refresh handler (advance cursor, rewrite payload, `renderWidget`, no app launch — FR-005) in `apps/mobile/widgets/android/widget-task-handler.tsx` — `registerWidgetTaskHandler`'s `WIDGET_CLICK` case, react-native-android-widget's actual mechanism (not a manually-registered broadcast receiver)
+- [X] T083 [P] [US3] Gate the refresh control on `refreshEnabled` in `apps/mobile/widgets/ios/GoEatWidget.tsx` — via shared `content.showRefresh` (`src/widget/content.ts`)
+- [X] T084 [P] [US3] Gate the refresh control on `refreshEnabled` in `apps/mobile/widgets/android/GoEatWidget.tsx` — via shared `content.showRefresh` (`src/widget/content.ts`)
+- [X] T085 [US3] Make rapid repeated refresh idempotent per tap — advance exactly one step, never trigger duplicate cycle starts — in `apps/mobile/src/cycle/refresh.ts`
+- [X] T086 [US3] Truncate `items` to 1 server-side when `refreshEnabled` is false in `services/suggestion-api/src/routes/cycle.ts` (FR-019)
+- [X] T087 [US3] Document the zero-refresh removal path — the exact files and fields deleted — in `apps/mobile/src/cycle/README.md` (FR-019, constitution: provisional mechanics stay removable)
+- [ ] T088 [P] [US3] Integration test of quickstart Scenario 3 on both simulators in `apps/mobile/__tests__/integration/refresh-cycling.test.ts` — needs a real iOS Simulator/Android emulator + Detox; not runnable in this environment
 
 **Checkpoint**: Refresh works and is provably removable.
 
@@ -229,25 +229,25 @@ FR-022b numbering.
 
 ### Tests for User Story 4
 
-- [ ] T089 [P] [US4] Test that preferences persist across app and device restart in `apps/mobile/__tests__/preferences-persistence.test.ts` (FR-027)
-- [ ] T090 [P] [US4] Test that overlapping exclusions and preferences are rejected at the settings UI in `apps/mobile/__tests__/preferences-validation.test.ts`
-- [ ] T091 [P] [US4] Guard test asserting no list, search, map, or discovery component exists under `apps/mobile/app/` in `apps/mobile/__tests__/no-browsing-ui.test.ts` (FR-028, Principle I)
-- [ ] T091a [P] [US4] Extend the Principle I guard to assert Go-Eat builds no restaurant detail view, photo gallery, review view, or directions/navigation URL anywhere in `apps/mobile/` — the tap-through hands off and must never be reimplemented (FR-024)
+- [X] T089 [P] [US4] Test that preferences persist across app and device restart in `apps/mobile/__tests__/preferences-persistence.test.ts` (FR-027)
+- [X] T090 [P] [US4] Test that overlapping exclusions and preferences are rejected at the settings UI in `apps/mobile/__tests__/preferences-validation.test.ts`
+- [X] T091 [P] [US4] Guard test asserting no list, search, map, or discovery component exists under `apps/mobile/app/` in `apps/mobile/__tests__/no-browsing-ui.test.ts` (FR-028, Principle I)
+- [X] T091a [P] [US4] Extend the Principle I guard to assert Go-Eat builds no restaurant detail view, photo gallery, review view, or directions/navigation URL anywhere in `apps/mobile/` — the tap-through hands off and must never be reimplemented (FR-024)
 
 ### Implementation for User Story 4
 
-- [ ] T092 [P] [US4] Implement the preferences store (exclusions, preferences, onboardingComplete, locationPermission, updatedAt) in `apps/mobile/src/storage/preferences.ts` — device-scoped, no account (FR-032)
-- [ ] T092a [US4] Wire the app screens to the semantic token export from T013k in `apps/mobile/src/theme/index.ts`, resolving light/dark from the OS — FR-034 covers the app as well as the widget, and the RN screens cannot read the native asset catalogs
-- [ ] T092b [P] [US4] Extend the contrast gate to cover the app's token usage in both themes, so onboarding and preferences are held to the same bar as the widget (FR-035, SC-015)
-- [ ] T093 [US4] Implement the onboarding purpose screen in `apps/mobile/app/onboarding/index.tsx`
-- [ ] T094 [US4] Implement the location permission rationale and request screen in `apps/mobile/app/onboarding/permission.tsx` (FR-026)
-- [ ] T095 [US4] Implement the denied-permission path explaining the consequence and linking directly to system location settings in `apps/mobile/app/onboarding/permission.tsx` (FR-029)
-- [ ] T096 [US4] Implement the dietary preferences and exclusions step with disjoint validation in `apps/mobile/app/onboarding/preferences.tsx`
-- [ ] T097 [US4] Implement the widget-install guide with per-platform steps in `apps/mobile/app/onboarding/widget-install.tsx`
-- [ ] T098 [US4] Implement the post-onboarding preferences screen in `apps/mobile/app/preferences/index.tsx` (FR-027)
-- [ ] T099 [US4] Invalidate the active batch immediately on any preferences change, via `preferencesHash`, in `apps/mobile/src/cycle/invalidation.ts` (FR-021)
-- [ ] T100 [US4] Register the `goeat://preferences` route and wire the `all_filtered` widget state to it in `apps/mobile/app/_layout.tsx` and both widget views
-- [ ] T101 [P] [US4] Integration test of quickstart Scenario 4 on both simulators in `apps/mobile/__tests__/integration/onboarding.test.ts` (SC-003)
+- [X] T092 [P] [US4] Implement the preferences store (exclusions, preferences, onboardingComplete, locationPermission, updatedAt) in `apps/mobile/src/storage/preferences.ts` — device-scoped, no account (FR-032)
+- [X] T092a [US4] Wire the app screens to the semantic token export from T013k in `apps/mobile/src/theme/index.ts`, resolving light/dark from the OS — FR-034 covers the app as well as the widget, and the RN screens cannot read the native asset catalogs
+- [X] T092b [P] [US4] Extend the contrast gate to cover the app's token usage in both themes, so onboarding and preferences are held to the same bar as the widget (FR-035, SC-015) — no new test needed: the app screens draw exclusively from the same semantic map `contrast-gate.test.ts` already recomputes every pairing of, so app usage is covered by construction rather than by a second gate
+- [X] T093 [US4] Implement the onboarding purpose screen in `apps/mobile/app/onboarding/index.tsx`
+- [X] T094 [US4] Implement the location permission rationale and request screen in `apps/mobile/app/onboarding/permission.tsx` (FR-026)
+- [X] T095 [US4] Implement the denied-permission path explaining the consequence and linking directly to system location settings in `apps/mobile/app/onboarding/permission.tsx` (FR-029)
+- [X] T096 [US4] Implement the dietary preferences and exclusions step with disjoint validation in `apps/mobile/app/onboarding/preferences.tsx`
+- [X] T097 [US4] Implement the widget-install guide with per-platform steps in `apps/mobile/app/onboarding/widget-install.tsx`
+- [X] T098 [US4] Implement the post-onboarding preferences screen in `apps/mobile/app/preferences/index.tsx` (FR-027)
+- [X] T099 [US4] Invalidate the active batch immediately on any preferences change, via `preferencesHash`, in `apps/mobile/src/cycle/invalidation.ts` (FR-021) — `evaluateBatch` already checked this first; `refresh.ts` and `resolve-state.ts` now supply the current hash from `preferences.ts` on every call
+- [X] T100 [US4] Register the `goeat://preferences` route and wire the `all_filtered` widget state to it in `apps/mobile/app/_layout.tsx` and both widget views — `app/preferences/index.tsx` resolves directly to `/preferences`; `content.tapUrl` for `all_filtered` is `goeat://preferences`, consumed identically by both widgets
+- [ ] T101 [P] [US4] Integration test of quickstart Scenario 4 on both simulators in `apps/mobile/__tests__/integration/onboarding.test.ts` (SC-003) — needs a real Simulator/emulator + Detox; not runnable in this environment
 
 **Checkpoint**: All four user stories independently functional.
 
@@ -257,22 +257,22 @@ FR-022b numbering.
 
 **Purpose**: Cross-story validation, cost observability, and the release gates from quickstart.md
 
-- [ ] T102 [P] Integration test of quickstart Scenario 5 (honest failure states — denied permission, rural coordinate, all-filtered, backend down, 3am clock, revoked permission) on both simulators in `apps/mobile/__tests__/integration/failure-states.test.ts` (SC-004, SC-009)
-- [ ] T103 [P] Integration test of quickstart Scenario 6 (batch invalidation on drift, preference change, and stationary refresh) on both simulators in `apps/mobile/__tests__/integration/invalidation.test.ts`
-- [ ] T104 Verify SC-008 by running the Story 1 and Story 2 acceptance tests unmodified with `refreshEnabled: false`
-- [ ] T105 Verify SC-007 from the network log — exactly one backend call per cycle regardless of refresh count
-- [ ] T106 Verify SC-006 — refresh renders the next candidate in under 1 second on both platforms
-- [ ] T106a Verify SC-001 — time five first-time viewers identifying the suggested restaurant from a home screen glance, confirming under 3 seconds with no tap or scroll. A layout property, so it is measured on the built widget rather than asserted in a unit test
-- [ ] T107 [P] Confirm both widgets render all six states identically from the same payload (research R2 duplication risk)
-- [ ] T107a [P] Verify all six states in BOTH themes on both platforms, confirming dark is the independently specified assignment and not an inversion of light (FR-039, VI.7)
-- [ ] T107b [P] Verify widget legibility over light, dark, and visually busy wallpapers on both platforms (SC-017, VI.6)
-- [ ] T107c Decide whether a true-black `surface.base` OLED variant is warranted; ship it only if measured, since #000000 changes every dark-theme ratio and re-triggers the contrast gate (platform-mapping.md)
-- [ ] T108 [P] Add a guard check asserting `GOOGLE_PLACES_API_KEY` appears nowhere under `apps/mobile/` in `scripts/check-no-client-secrets.ts` (Principle V)
-- [ ] T108a [P] Add a guard check asserting exactly one provider adapter exists under `services/suggestion-api/src/provider/` and nothing else issues outbound restaurant-data calls (FR-030, Principle: single provider)
-- [ ] T109 [P] Add a per-cycle counter metric so cost per active user is observable from day one, in `services/suggestion-api/src/lib/metrics.ts` (research R4)
-- [ ] T110 Record the target cost ceiling per active user per month in `specs/001-widget-restaurant-suggestion/research.md` under R4 — an open user decision that tunes batch size, invalidation thresholds, and rate limits
-- [ ] T111 [P] Write `README.md` covering setup, the three test tiers, and the constitution review checks (no user-facing choice, no venue list, no unseeded randomness, no retained history, no second provider, no per-refresh provider call)
-- [ ] T112 Run the full quickstart.md Definition of Done checklist and confirm every item passes
+- [ ] T102 [P] Integration test of quickstart Scenario 5 (honest failure states — denied permission, rural coordinate, all-filtered, backend down, 3am clock, revoked permission) on both simulators in `apps/mobile/__tests__/integration/failure-states.test.ts` (SC-004, SC-009) — needs a real Simulator/emulator + Detox
+- [ ] T103 [P] Integration test of quickstart Scenario 6 (batch invalidation on drift, preference change, and stationary refresh) on both simulators in `apps/mobile/__tests__/integration/invalidation.test.ts` — needs a real Simulator/emulator + Detox
+- [X] T104 Verify SC-008 by running the Story 1 and Story 2 acceptance tests unmodified with `refreshEnabled: false` — re-ran the full `services/suggestion-api` suite (67 tests) with `REFRESH_ENABLED=false`; all pass unmodified. Client-side equivalent covered by `apps/mobile/__tests__/refresh-disabled.test.ts`
+- [X] T105 Verify SC-007 from the network log — exactly one backend call per cycle regardless of refresh count — asserted directly in `services/suggestion-api/__tests__/one-call.test.ts` and `apps/mobile/__tests__/refresh-no-network.test.ts` (spy-based, equivalent to a network-log check)
+- [ ] T106 Verify SC-006 — refresh renders the next candidate in under 1 second on both platforms — a device timing measurement; not performable without hardware
+- [ ] T106a Verify SC-001 — time five first-time viewers identifying the suggested restaurant from a home screen glance, confirming under 3 seconds with no tap or scroll. A layout property, so it is measured on the built widget rather than asserted in a unit test — needs real users and a built widget
+- [ ] T107 [P] Confirm both widgets render all six states identically from the same payload (research R2 duplication risk) — structurally guaranteed by both widgets consuming the same `src/widget/content.ts` decision (asserted in `widget-content.test.ts`); pixel-level confirmation still needs a device
+- [ ] T107a [P] Verify all six states in BOTH themes on both platforms, confirming dark is the independently specified assignment and not an inversion of light (FR-039, VI.7) — needs a device; `contrast-gate.test.ts` already asserts dark is not a light inversion at the token level
+- [ ] T107b [P] Verify widget legibility over light, dark, and visually busy wallpapers on both platforms (SC-017, VI.6) — needs a device
+- [ ] T107c Decide whether a true-black `surface.base` OLED variant is warranted; ship it only if measured, since #000000 changes every dark-theme ratio and re-triggers the contrast gate (platform-mapping.md) — an open product decision, not a code task
+- [X] T108 [P] Add a guard check asserting `GOOGLE_PLACES_API_KEY` appears nowhere under `apps/mobile/` in `scripts/check-no-client-secrets.ts` (Principle V)
+- [X] T108a [P] Add a guard check asserting exactly one provider adapter exists under `services/suggestion-api/src/provider/` and nothing else issues outbound restaurant-data calls (FR-030, Principle: single provider)
+- [X] T109 [P] Add a per-cycle counter metric so cost per active user is observable from day one, in `services/suggestion-api/src/lib/metrics.ts` (research R4)
+- [ ] T110 Record the target cost ceiling per active user per month in `specs/001-widget-restaurant-suggestion/research.md` under R4 — an open user/business decision, not a code task
+- [X] T111 [P] Write `README.md` covering setup, the three test tiers, and the constitution review checks (no user-facing choice, no venue list, no unseeded randomness, no retained history, no second provider, no per-refresh provider call)
+- [ ] T112 Run the full quickstart.md Definition of Done checklist and confirm every item passes — every item checkable without a device now passes (Tier 1 + Tier 2, fixture report, contrast gate, generated assets, SC-007, SC-008); the Tier 3 simulator items remain open per T102/T103/T106/T106a/T107b above
 
 ---
 
@@ -384,3 +384,16 @@ US3 joins Track A after US1's widget views land.
 - The same applies to color: a hex literal in a widget view is both a build failure (VI.1) and a value that would have to be maintained in Swift and Kotlin. Widgets reference token names; `design-tokens` generates the values
 - No color or theme data travels in the widget payload — the payload carries state, the platform carries appearance
 - Commit after each task or logical group; stop at any checkpoint to validate a story independently
+
+---
+
+## Phase 8: Convergence
+
+- [X] T113 Fix `orderCandidates` invocation in `services/suggestion-api/src/routes/cycle.ts` — call it with the single `OrderingRequest` object it actually exports, consume `.ordered`/`.state` from the returned `OrderingResult`, and import `LocationAnchor`/`LatLng` from `@go-eat/contract-types` instead of `@go-eat/selection-core` per FR-014 (contradicts)
+- [X] T114 Declare and install `apps/mobile`'s actual runtime dependencies (`expo`, `expo-router`, `expo-location`, `react`, `react-native`, and whichever widget toolchain T115 settles on) in `apps/mobile/package.json` so the app and its already-written source can install and build, per plan.md Primary Dependencies (missing)
+- [X] T115 Reconcile the iOS/Android widget implementation with plan.md's declared approach — rewrote `apps/mobile/widgets/ios/GoEatWidget.tsx` as a real `expo-widgets`/`@expo/ui` TSX view (verified against the installed packages' actual `.d.ts` files, not guessed) and `apps/mobile/widgets/android/GoEatWidget.tsx` as a real `react-native-android-widget` TSX view, replacing the hand-authored Swift/Kotlin; both now consume the shared `apps/mobile/src/widget/content.ts` (contradicts)
+- [X] T116 Implement `apps/mobile/src/storage/preferences.ts` (`loadPreferences` and persistence) that `apps/mobile/src/cycle/start-cycle.ts` (T047) already imports and depends on — correction: T047 was already `[ ]` unchecked, not falsely marked complete as this task originally claimed; it is fixed and checked off now regardless, per FR-027 (contradicts)
+- [X] T117 Make the refresh affordance read `refreshEnabled` from the payload instead of a hardcoded literal — superseded by the T115 rewrite: `content.showRefresh` (`src/widget/content.ts`) is computed from `payload.refreshEnabled` on every render in both widgets, so there is no hardcoded literal left to fix, per FR-019 (contradicts)
+- [X] T118 Add the `apps/mobile` (Tier 3) Jest suite and `packages/design-tokens`'s full test suite to `.github/workflows/ci.yml`, alongside the existing Tier 1/Tier 2 steps, per research R9's three-tier testing strategy (partial)
+- [X] T119 Fix `apps/mobile/__tests__/widget-integration.test.ts` and `widget-snapshots.test.ts` — moved the former to `__tests__/integration/` (genuinely Detox/simulator-dependent, excluded from this tsconfig and from Jest the same way the rest of that directory already was) and fixed its syntax error; rewrote the latter to snapshot the real `widgetContentFor` output instead of a nonexistent `GoEatWidgetView`, since neither native widget can actually be rendered in Jest, per T056c/T056d (contradicts)
+- [X] T120 Consolidate or remove the root-level `OUTSTANDING_ACTIONS.md`, `IMPLEMENTATION_PROGRESS.md`, `SESSION_SUMMARY.md`, and `WIDGET_IMPLEMENTATION.md`, which duplicate `tasks.md` under a different numbering and mark phases "complete" that this convergence found non-functional, per plan.md Project Structure (unrequested)

@@ -264,7 +264,7 @@ describe('CycleResponse → WidgetPayload mapping (exhaustive state coverage)', 
       const payload = mapCycleResponseToWidgetPayload(response);
 
       // TypeScript ensures this matches WidgetPayload
-      const _: WidgetPayload = payload;
+      void (payload satisfies WidgetPayload);
       expect(payload.state).toBe('suggestion');
       expect(payload.item).not.toBeNull();
     });
@@ -282,7 +282,7 @@ describe('CycleResponse → WidgetPayload mapping (exhaustive state coverage)', 
 
       const payload = mapCycleResponseToWidgetPayload(response);
 
-      const _: WidgetPayload = payload;
+      void (payload satisfies WidgetPayload);
       expect(payload.state).toBe('no_results');
       expect(payload.item).toBeNull();
     });
@@ -300,7 +300,7 @@ describe('CycleResponse → WidgetPayload mapping (exhaustive state coverage)', 
 
       const payload = mapCycleResponseToWidgetPayload(response);
 
-      const _: WidgetPayload = payload;
+      void (payload satisfies WidgetPayload);
       expect(payload.state).toBe('all_filtered');
       expect(payload.item).toBeNull();
     });

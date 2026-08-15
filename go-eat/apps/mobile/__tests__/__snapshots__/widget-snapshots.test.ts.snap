@@ -1,0 +1,145 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`Widget Snapshots — Dark Mode renders all_filtered state (dark) with unchanged content: all_filtered-dark 1`] = `
+{
+  "actionLabel": null,
+  "glyph": "filter",
+  "showRefresh": false,
+  "state": "all_filtered",
+  "subtitle": "Adjust settings in the app",
+  "tapUrl": "goeat://preferences",
+  "title": "All preferences filtered out",
+}
+`;
+
+exports[`Widget Snapshots — Dark Mode renders loading state (dark) with unchanged content: loading-dark 1`] = `
+{
+  "actionLabel": null,
+  "glyph": "spinner",
+  "showRefresh": false,
+  "state": "loading",
+  "subtitle": null,
+  "tapUrl": null,
+  "title": "Finding a restaurant...",
+}
+`;
+
+exports[`Widget Snapshots — Dark Mode renders no_results state (dark) with unchanged content: no_results-dark 1`] = `
+{
+  "actionLabel": null,
+  "glyph": "info",
+  "showRefresh": false,
+  "state": "no_results",
+  "subtitle": null,
+  "tapUrl": null,
+  "title": "Nothing worth recommending nearby",
+}
+`;
+
+exports[`Widget Snapshots — Dark Mode renders permission_required state (dark) with unchanged content: permission_required-dark 1`] = `
+{
+  "actionLabel": "SETTINGS",
+  "glyph": "pin-slash",
+  "showRefresh": false,
+  "state": "permission_required",
+  "subtitle": "Go-Eat needs your location to suggest a restaurant nearby.",
+  "tapUrl": "goeat://permission",
+  "title": "Enable Location",
+}
+`;
+
+exports[`Widget Snapshots — Dark Mode renders stale state (dark) with unchanged content: stale-dark 1`] = `
+{
+  "actionLabel": "STALE",
+  "glyph": "clock",
+  "showRefresh": false,
+  "state": "stale",
+  "subtitle": "Italian · 4.6 · 0.3 mi",
+  "tapUrl": "https://www.google.com/maps/place/?q=place_id:xyz",
+  "title": "Mario's Trattoria",
+}
+`;
+
+exports[`Widget Snapshots — Dark Mode renders suggestion state (dark) with unchanged content: suggestion-dark 1`] = `
+{
+  "actionLabel": "TAP FOR DIRECTIONS",
+  "glyph": "plate",
+  "showRefresh": true,
+  "state": "suggestion",
+  "subtitle": "Italian · 4.6 · 0.3 mi",
+  "tapUrl": "https://www.google.com/maps/place/?q=place_id:xyz",
+  "title": "Mario's Trattoria",
+}
+`;
+
+exports[`Widget Snapshots — Light Mode renders all_filtered state: all_filtered-light 1`] = `
+{
+  "actionLabel": null,
+  "glyph": "filter",
+  "showRefresh": false,
+  "state": "all_filtered",
+  "subtitle": "Adjust settings in the app",
+  "tapUrl": "goeat://preferences",
+  "title": "All preferences filtered out",
+}
+`;
+
+exports[`Widget Snapshots — Light Mode renders loading state: loading-light 1`] = `
+{
+  "actionLabel": null,
+  "glyph": "spinner",
+  "showRefresh": false,
+  "state": "loading",
+  "subtitle": null,
+  "tapUrl": null,
+  "title": "Finding a restaurant...",
+}
+`;
+
+exports[`Widget Snapshots — Light Mode renders no_results state: no_results-light 1`] = `
+{
+  "actionLabel": null,
+  "glyph": "info",
+  "showRefresh": false,
+  "state": "no_results",
+  "subtitle": null,
+  "tapUrl": null,
+  "title": "Nothing worth recommending nearby",
+}
+`;
+
+exports[`Widget Snapshots — Light Mode renders permission_required state: permission_required-light 1`] = `
+{
+  "actionLabel": "SETTINGS",
+  "glyph": "pin-slash",
+  "showRefresh": false,
+  "state": "permission_required",
+  "subtitle": "Go-Eat needs your location to suggest a restaurant nearby.",
+  "tapUrl": "goeat://permission",
+  "title": "Enable Location",
+}
+`;
+
+exports[`Widget Snapshots — Light Mode renders stale state: stale-light 1`] = `
+{
+  "actionLabel": "STALE",
+  "glyph": "clock",
+  "showRefresh": false,
+  "state": "stale",
+  "subtitle": "Italian · 4.6 · 0.3 mi",
+  "tapUrl": "https://www.google.com/maps/place/?q=place_id:xyz",
+  "title": "Mario's Trattoria",
+}
+`;
+
+exports[`Widget Snapshots — Light Mode renders suggestion state: suggestion-light 1`] = `
+{
+  "actionLabel": "TAP FOR DIRECTIONS",
+  "glyph": "plate",
+  "showRefresh": true,
+  "state": "suggestion",
+  "subtitle": "Italian · 4.6 · 0.3 mi",
+  "tapUrl": "https://www.google.com/maps/place/?q=place_id:xyz",
+  "title": "Mario's Trattoria",
+}
+`;

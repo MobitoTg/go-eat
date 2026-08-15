@@ -1,11 +1,15 @@
-import type { WidgetPayload } from '@go-eat/contract-types';
-import { PAYLOAD_STORAGE, PAYLOAD_VERSION } from '@go-eat/contract-types';
+import type { SuggestionBatch, WidgetPayload } from '@go-eat/contract-types';
+import { BATCH_STORAGE, PAYLOAD_STORAGE, PAYLOAD_VERSION } from '@go-eat/contract-types';
 
 /**
- * The app→widget shared-storage bridge.
+ * The app↔widget shared-storage bridge.
  *
- * iOS writes into the App Group container, Android into SharedPreferences. Both are read by
- * native widget code that cannot run JavaScript, so this module is the only writer.
+ * iOS writes into the App Group container, Android into SharedPreferences. Two keys live there
+ * (data-model.md storage boundaries table):
+ * - the `WidgetPayload` — what the widget actually renders (single current item, FR-001).
+ * - the `SuggestionBatch` — the full ordered batch + cursor, read by the refresh handler
+ *   (`src/widget/ios-refresh.ts`, `widgets/android/widget-task-handler.ts`) so it can advance the
+ *   cursor and recompute a payload WITHOUT launching the JS app (FR-005) or the network (FR-015).
  *
  * **Writes MUST be atomic.** A widget reload can land mid-write, and a half-written payload
  * renders as a blank widget — which the constitution forbids outright ("honest states over empty
@@ -18,6 +22,8 @@ export interface SharedStorageAdapter {
   getItem(key: string): Promise<string | null>;
   removeItem(key: string): Promise<void>;
 }
+
+export type Platform = 'ios' | 'android';
 
 let adapter: SharedStorageAdapter | null = null;
 
@@ -33,21 +39,22 @@ function requireAdapter(): SharedStorageAdapter {
   return adapter;
 }
 
-export function payloadKey(platform: 'ios' | 'android'): string {
+export function payloadKey(platform: Platform): string {
   return platform === 'ios' ? PAYLOAD_STORAGE.ios.key : PAYLOAD_STORAGE.android.key;
 }
 
-export async function writePayload(
-  payload: WidgetPayload,
-  platform: 'ios' | 'android',
-): Promise<void> {
+export function batchKey(platform: Platform): string {
+  return platform === 'ios' ? BATCH_STORAGE.ios.key : BATCH_STORAGE.android.key;
+}
+
+export async function writePayload(payload: WidgetPayload, platform: Platform): Promise<void> {
   // Serialize first. If the payload is somehow unserializable we fail before touching storage,
   // leaving the previous good payload in place rather than a truncated one.
   const serialized = JSON.stringify(payload);
   await requireAdapter().setItem(payloadKey(platform), serialized);
 }
 
-export async function readPayload(platform: 'ios' | 'android'): Promise<WidgetPayload | null> {
+export async function readPayload(platform: Platform): Promise<WidgetPayload | null> {
   const raw = await requireAdapter().getItem(payloadKey(platform));
   if (!raw) return null;
 
@@ -57,6 +64,20 @@ export async function readPayload(platform: 'ios' | 'android'): Promise<WidgetPa
     // cycle corrects it (contracts/widget-payload.md, Versioning).
     if (parsed.version !== PAYLOAD_VERSION) return { ...parsed, state: 'stale', isStale: true };
     return parsed;
+  } catch {
+    return null;
+  }
+}
+
+export async function writeBatch(batch: SuggestionBatch, platform: Platform): Promise<void> {
+  await requireAdapter().setItem(batchKey(platform), JSON.stringify(batch));
+}
+
+export async function readBatch(platform: Platform): Promise<SuggestionBatch | null> {
+  const raw = await requireAdapter().getItem(batchKey(platform));
+  if (!raw) return null;
+  try {
+    return JSON.parse(raw) as SuggestionBatch;
   } catch {
     return null;
   }

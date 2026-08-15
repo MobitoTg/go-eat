@@ -28,7 +28,7 @@ const config: ExpoConfig = {
   scheme: 'goeat',
   orientation: 'portrait',
   userInterfaceStyle: 'automatic',
-  newArchEnabled: true,
+  // New Architecture is on by default from SDK 57+; there is no longer a config field for it.
 
   ios: {
     bundleIdentifier: BUNDLE_ID,

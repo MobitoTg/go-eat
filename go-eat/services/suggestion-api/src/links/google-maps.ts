@@ -1,12 +1,14 @@
 /**
- * T040: Google Maps deep-link builder.
+ * T040: Google Maps deep-link builder, per `contracts/deep-link.md`.
  *
- * Constructs two URLs per restaurant:
- * - `listingUrl`: Direct to the restaurant's listing (via placeId)
- * - `fallbackUrl`: Fallback if listing becomes unavailable (name + coords)
+ * Two URLs per restaurant, both constructed server-side (widgets cannot build URLs):
+ * - `listingUrl` — steps 1–2 of the fallback chain: a universal link that opens the Google Maps
+ *   app when installed, and falls through to the web listing when it is not. Built from `placeId`.
+ * - `fallbackUrl` — step 3: a name + place-id search, used when the listing itself is gone
+ *   (FR-025). Never a bare coordinate pin — the user must land on the specific business.
  *
- * Both MUST be HTTPS and work on iOS and Android (no app-specific schemes).
- * FR-023, FR-025.
+ * Both are plain `https://www.google.com/maps/...` web URLs (no `comgooglemaps://` or `geo:`
+ * scheme), so they work on iOS and Android without requiring the Maps app.
  */
 
 export interface GoogleMapsUrlInput {
@@ -22,59 +24,46 @@ export interface GoogleMapsUrls {
 }
 
 /**
- * Build Google Maps URLs with listing and fallback chains.
- *
- * The three-step fallback chain (from contracts/deep-link.md):
- * 1. Try listingUrl (placeId) — most direct
- * 2. Fall back to fallbackUrl (name + coordinates) — broader search
- * 3. Fall back to Google Maps home — if all else fails
- *
- * Implementation handles these at the app level (iOS/Android).
+ * Build Google Maps URLs per the deep-link contract's fallback chain.
  */
 export function buildGoogleMapsUrls(input: GoogleMapsUrlInput): GoogleMapsUrls {
   const { placeId, name, lat, lng } = input;
 
-  // Validate coordinates
   if (lat < -90 || lat > 90) {
     throw new Error(`Invalid latitude: ${lat}`);
   }
   if (lng < -180 || lng > 180) {
     throw new Error(`Invalid longitude: ${lng}`);
   }
+  if (!placeId) {
+    throw new Error('placeId is required to build a Google Maps deep link');
+  }
 
-  // listingUrl: Use placeId for direct access
-  // Format: https://maps.google.com/?cid=<placeId>&query_builder=false
-  const listingUrl = new URL('https://maps.google.com/');
-  listingUrl.searchParams.set('cid', placeId);
-  listingUrl.searchParams.set('query_builder', 'false'); // Skip edit dialog
-  // Include coordinates for context
-  listingUrl.searchParams.set('hl', 'en'); // Language (optional, but helpful)
+  // Steps 1–2: `https://www.google.com/maps/place/?q=place_id:<ID>` is a universal link — it opens
+  // the Google Maps app via link interception when installed, and the web listing otherwise. Both
+  // land on the specific business (contracts/deep-link.md).
+  const listingUrl = `https://www.google.com/maps/place/?q=place_id:${encodeURIComponent(placeId)}`;
 
-  // fallbackUrl: Search by name + coordinates
-  // Format: https://maps.google.com/search/<name>/@<lat>,<lng>,<zoom>z
-  // The @lat,lng,z format is Google Maps' standard URL format for coordinates
-  const fallbackUrl = new URL(
-    `https://maps.google.com/search/${encodeURIComponent(name)}/@${lat},${lng},16z`,
-  );
+  // Step 3: name + place-id search — the closest available representation if the listing itself
+  // has gone away (FR-025). Coordinates are not part of this URL form; `query_place_id` combined
+  // with the name is what the contract specifies for re-anchoring the search.
+  const fallbackUrl =
+    `https://www.google.com/maps/search/?api=1` +
+    `&query=${encodeURIComponent(name)}` +
+    `&query_place_id=${encodeURIComponent(placeId)}`;
 
-  return {
-    listingUrl: listingUrl.toString(),
-    fallbackUrl: fallbackUrl.toString(),
-  };
+  return { listingUrl, fallbackUrl };
 }
 
 /**
- * Verify a URL is safe to open (HTTPS only, Google Maps domain).
- * Used before opening URLs in the widget.
+ * Verify a URL is safe to open (HTTPS only, a google.com domain). Used before opening URLs in the
+ * widget's tap handler as a defense against a malformed or tampered payload.
  */
 export function isValidMapsUrl(url: string): boolean {
   try {
     const parsed = new URL(url);
-    // Only allow HTTPS
     if (parsed.protocol !== 'https:') return false;
-    // Only allow google.com and maps.google.com domains
-    if (!parsed.hostname.includes('google.com')) return false;
-    return true;
+    return parsed.hostname === 'www.google.com' || parsed.hostname.endsWith('.google.com');
   } catch {
     return false;
   }

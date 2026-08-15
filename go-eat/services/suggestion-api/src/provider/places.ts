@@ -193,4 +193,36 @@ export function createPlacesProvider(options: CreateProviderOptions): PlacesProv
   };
 }
 
+export interface FetchNearbyOptions {
+  /** How many candidates to request. 20 by default — see research R3a; pricing is per request. */
+  maxResultCount: number;
+  searchRadiusMeters: number;
+  apiKey: string;
+  /** Injectable so tests and fixtures never touch the network (Principle IV). */
+  fetchImpl?: typeof fetch;
+  timeoutMs?: number;
+}
+
+/**
+ * Convenience entry point used by the cycle route: builds a provider and issues the one allowed
+ * request per cycle in a single call. Exists as a standalone export (rather than requiring callers
+ * to hold onto a `PlacesProvider` instance) so `services/suggestion-api/__tests__/one-call.test.ts`
+ * can assert call count via a spy on this module's own surface.
+ */
+export async function fetchNearbyRestaurants(
+  anchor: LatLng,
+  options: FetchNearbyOptions,
+): Promise<RestaurantCandidate[]> {
+  const provider = createPlacesProvider({
+    apiKey: options.apiKey,
+    fetchImpl: options.fetchImpl,
+    timeoutMs: options.timeoutMs,
+  });
+  return provider.searchNearby({
+    anchor,
+    radiusMeters: options.searchRadiusMeters,
+    maxResultCount: options.maxResultCount,
+  });
+}
+
 export { FIELD_MASK, ENDPOINT };

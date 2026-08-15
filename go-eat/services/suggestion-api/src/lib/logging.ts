@@ -61,3 +61,22 @@ export function safeLogPayload(payload: Record<string, unknown>): Record<string,
 
   return out;
 }
+
+/**
+ * T020: The service's only logging surface. Every payload passes through `safeLogPayload` before
+ * it is written, so a caller cannot accidentally leak a full-precision coordinate or credential by
+ * reaching for the wrong key name — the redaction happens here, not at each call site.
+ */
+function write(level: 'info' | 'warn' | 'error', message: string, payload?: Record<string, unknown>): void {
+  if (process.env.NODE_ENV === 'test' && !process.env.GOEAT_LOG_IN_TESTS) return;
+  const safe = payload ? safeLogPayload(payload) : undefined;
+  const line = safe ? { message, ...safe } : { message };
+  // eslint-disable-next-line no-console -- this IS the logging implementation.
+  console[level](JSON.stringify(line));
+}
+
+export const log = {
+  info: (message: string, payload?: Record<string, unknown>): void => write('info', message, payload),
+  warn: (message: string, payload?: Record<string, unknown>): void => write('warn', message, payload),
+  error: (message: string, payload?: Record<string, unknown>): void => write('error', message, payload),
+};

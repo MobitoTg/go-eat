@@ -1,110 +1,168 @@
 /**
  * T048: Payload writer.
  *
- * Maps a CycleResponse (backend output) + local state (cursor, freshness)
- * into a WidgetPayload (widget input).
+ * Two distinct mappings live here:
+ * - `cycleResponseToBatch` — a fresh `CycleResponse` (backend output) becomes a `SuggestionBatch`
+ *   (the full ordered batch + cursor 0), the app-local record the refresh handler advances.
+ * - `batchToWidgetPayload` — a `SuggestionBatch` + freshness becomes the `WidgetPayload` the widget
+ *   actually renders: the single item at the cursor, never the whole batch (FR-001, Principle II —
+ *   the widget must have no way to know alternatives exist).
  *
- * The payload is what gets written to shared storage and read by the widget.
- * It's the contract between app and widget.
+ * Both are pure. Nothing here touches storage; `start-cycle.ts` and `refresh.ts` call these and
+ * write the results.
  */
 
-import type { CycleResponse, WidgetPayload } from '@go-eat/contract-types';
-import { isStale } from './invalidation.js';
+import type { CycleResponse, SuggestionBatch, WidgetPayload } from '@go-eat/contract-types';
+import { PAYLOAD_VERSION } from '@go-eat/contract-types';
 
 /**
- * Map a cycle response to a widget payload.
- *
- * This is called after a successful cycle, and also when the app detects
- * that the current batch is stale (staleness check runs periodically).
+ * T038/T047: Map a FRESH `CycleResponse` directly to the `WidgetPayload` for its first item
+ * (cursor 0) — what `start-cycle.ts` writes the instant a cycle completes, before any refresh has
+ * happened. Exhaustive over all three `BatchState` values with no default branch, so a missing
+ * case is a compile error rather than a blank widget.
  */
-export function mapCycleResponseToWidgetPayload(response: CycleResponse): WidgetPayload {
-  const now = new Date().toISOString();
-  const stale = isStale(response.issuedAt);
-
-  // Determine which item to display
-  let displayItem: CycleResponse['items'][number] | null = null;
-  if (response.items.length > 0) {
-    const index = (response.cursor ?? 0) % response.items.length;
-    displayItem = response.items[index] ?? null;
-  }
-
-  // Map the batch state
-  let payload: WidgetPayload;
+export function mapCycleResponseToWidgetPayload(
+  response: CycleResponse,
+  options: { isStale?: boolean; now?: () => Date } = {},
+): WidgetPayload {
+  const now = (options.now ?? (() => new Date()))().toISOString();
+  const isStale = options.isStale ?? false;
 
   switch (response.state) {
     case 'suggestion': {
-      payload = {
-        state: 'suggestion',
-        item: displayItem,
-        items: response.items,
-        cycleId: response.cycleId,
-        seed: response.seed,
-        issuedAt: response.issuedAt,
+      const item = response.items[0];
+      if (!item) {
+        // Contractually non-empty when state is 'suggestion' (data-model.md); guard rather than
+        // assume, since this reads a network response, not a value this module constructed.
+        return { version: PAYLOAD_VERSION, state: 'loading', updatedAt: now, isStale: false, refreshEnabled: response.refreshEnabled, item: null };
+      }
+      return {
+        version: PAYLOAD_VERSION,
+        state: isStale ? 'stale' : 'suggestion',
         updatedAt: now,
-        cursor: response.cursor ?? 0,
+        isStale,
         refreshEnabled: response.refreshEnabled,
-        batchSize: response.batchSize,
-        isStale: stale,
+        item: {
+          name: item.name,
+          cuisineLabel: item.cuisineLabel,
+          ratingLabel: item.ratingLabel,
+          reviewCountLabel: item.reviewCountLabel,
+          distanceLabel: item.distanceLabel,
+          listingUrl: item.listingUrl,
+          fallbackUrl: item.fallbackUrl,
+        },
       };
-      break;
     }
 
-    case 'no_results': {
-      payload = {
-        state: 'no_results',
-        item: null,
-        items: [],
-        cycleId: response.cycleId,
-        seed: response.seed,
-        issuedAt: response.issuedAt,
+    case 'no_results':
+    case 'all_filtered':
+      return {
+        version: PAYLOAD_VERSION,
+        state: response.state,
         updatedAt: now,
-        cursor: 0,
-        refreshEnabled: response.refreshEnabled,
-        batchSize: 0,
-        isStale: false, // no_results doesn't get stale indicator
-      };
-      break;
-    }
-
-    case 'all_filtered': {
-      payload = {
-        state: 'all_filtered',
-        item: null,
-        items: [],
-        cycleId: response.cycleId,
-        seed: response.seed,
-        issuedAt: response.issuedAt,
-        updatedAt: now,
-        cursor: 0,
-        refreshEnabled: response.refreshEnabled,
-        batchSize: 0,
         isStale: false,
+        refreshEnabled: response.refreshEnabled,
+        item: null,
       };
-      break;
-    }
-
-    default:
-      // TypeScript ensures this is unreachable
-      throw new Error(`Unknown batch state: ${response.state}`);
   }
+}
 
-  return payload;
+/** T047: Persist the full ordered batch + cursor 0, for the refresh handler to advance later. */
+export function cycleResponseToBatch(response: CycleResponse, preferencesHash: string): SuggestionBatch {
+  return {
+    cycleId: response.cycleId,
+    seed: response.seed,
+    issuedAt: response.issuedAt,
+    anchor: response.anchor,
+    preferencesHash,
+    items: response.items,
+    cursor: 0,
+    refreshEnabled: response.refreshEnabled,
+  };
+}
+
+export interface BatchToPayloadOptions {
+  /** True when the batch could not be refreshed (stale anchor, offline) but is still shown. */
+  isStale: boolean;
+  now?: () => Date;
 }
 
 /**
- * Update payload after a refresh (cursor advance).
+ * Map the current batch to the `WidgetPayload` the widget reads. `state` is derived from the
+ * batch shape: an empty batch is ambiguous between `no_results` and `all_filtered` at this layer
+ * (that distinction is a backend concern, resolved in `services/suggestion-api/src/shaping/state.ts`
+ * and threaded through unchanged) — callers pass it in explicitly via `emptyState`.
  */
-export function refreshPayload(payload: WidgetPayload): WidgetPayload {
-  if (payload.state !== 'suggestion' || payload.items.length === 0) {
-    return payload; // Can't refresh
+export function batchToWidgetPayload(
+  batch: SuggestionBatch,
+  emptyState: 'no_results' | 'all_filtered' | null,
+  options: BatchToPayloadOptions,
+): WidgetPayload {
+  const now = (options.now ?? (() => new Date()))().toISOString();
+
+  if (batch.items.length === 0) {
+    return {
+      version: PAYLOAD_VERSION,
+      state: emptyState ?? 'no_results',
+      updatedAt: now,
+      isStale: false,
+      refreshEnabled: batch.refreshEnabled,
+      item: null,
+    };
   }
 
-  const nextCursor = (payload.cursor + 1) % payload.items.length;
-  const nextItem = payload.items[nextCursor];
+  const item = batch.items[batch.cursor % batch.items.length];
+  if (!item) {
+    // Defensive: cursor out of range for a non-empty batch should never happen (invariant from
+    // data-model.md), but a corrupted storage read must still render honestly, not crash.
+    return {
+      version: PAYLOAD_VERSION,
+      state: 'loading',
+      updatedAt: now,
+      isStale: false,
+      refreshEnabled: batch.refreshEnabled,
+      item: null,
+    };
+  }
 
   return {
-    ...payload,
-    cursor: nextCursor,
-    item: nextItem ?? null,
+    version: PAYLOAD_VERSION,
+    state: options.isStale ? 'stale' : 'suggestion',
+    updatedAt: now,
+    isStale: options.isStale,
+    refreshEnabled: batch.refreshEnabled,
+    item: {
+      name: item.name,
+      cuisineLabel: item.cuisineLabel,
+      ratingLabel: item.ratingLabel,
+      reviewCountLabel: item.reviewCountLabel,
+      distanceLabel: item.distanceLabel,
+      listingUrl: item.listingUrl,
+      fallbackUrl: item.fallbackUrl,
+    },
+  };
+}
+
+/** A `loading` payload for first render, before any cycle has completed (data-model.md, Assumptions). */
+export function loadingPayload(refreshEnabled: boolean, now: () => Date = () => new Date()): WidgetPayload {
+  return {
+    version: PAYLOAD_VERSION,
+    state: 'loading',
+    updatedAt: now().toISOString(),
+    isStale: false,
+    refreshEnabled,
+    item: null,
+  };
+}
+
+/** A `permission_required` payload — location permission is not granted (FR-004). */
+export function permissionRequiredPayload(refreshEnabled: boolean, now: () => Date = () => new Date()): WidgetPayload {
+  return {
+    version: PAYLOAD_VERSION,
+    state: 'permission_required',
+    updatedAt: now().toISOString(),
+    isStale: false,
+    refreshEnabled,
+    item: null,
   };
 }

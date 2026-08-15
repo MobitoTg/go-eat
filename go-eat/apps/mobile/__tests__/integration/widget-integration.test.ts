@@ -13,6 +13,14 @@
  * **FR-005**: Refresh button taps advance cursor without launching app.
  * **FR-040**: Widget snapshots are deterministic.
  * **Principle I**: Tapping restaurants opens Maps, never the app.
+ *
+ * Tier 3 (research R9): requires a built app on a real iOS Simulator/Android emulator plus a
+ * configured Detox environment (`.detoxrc.js`, a compiled app binary). Excluded from
+ * `apps/mobile/tsconfig.json` and from Jest's `testMatch` (`jest.config.cjs`) for the same reason
+ * Tier 2 excludes all of `__tests__/integration/` — it cannot run in this workspace's plain-Node
+ * test environment. Several calls below (`revokePermissions`, `enableAccessibilityScreenReader`,
+ * `toMatchImage`, `simulateAppliedTint`) are aspirational against the installed `detox` version and
+ * need reconciling against a real Detox setup before this file is wired into a device-farm CI job.
  */
 
 import { device, element, by, expect as detoxExpect } from 'detox';
@@ -143,8 +151,8 @@ describe('Widget Integration Tests', () => {
       await device.enableAccessibilityScreenReader();
 
       // Verify accessibility labels are set
-      await detoxExpect(element(by.id('restaurant-name')).and(by.text("Mario's Trattoria")))).toBeVisible();
-      await detoxExpect(element(by.id('tap-button').and(by.text('TAP FOR DIRECTIONS')))).toBeVisible();
+      await detoxExpect(element(by.id('restaurant-name')).and(by.text("Mario's Trattoria"))).toBeVisible();
+      await detoxExpect(element(by.id('tap-button')).and(by.text('TAP FOR DIRECTIONS'))).toBeVisible();
 
       await device.disableAccessibilityScreenReader();
     }
@@ -255,10 +263,16 @@ describe('Widget Integration Tests', () => {
 /**
  * Helper: extract colors from view hierarchy.
  */
-function extractColorsFromHierarchy(hierarchy: any): string[] {
+interface ViewHierarchyNode {
+  backgroundColor?: string;
+  tintColor?: string;
+  children?: ViewHierarchyNode[];
+}
+
+function extractColorsFromHierarchy(hierarchy: ViewHierarchyNode): string[] {
   const colors: string[] = [];
 
-  function traverse(node: any) {
+  function traverse(node: ViewHierarchyNode) {
     if (node.backgroundColor) {
       colors.push(node.backgroundColor);
     }

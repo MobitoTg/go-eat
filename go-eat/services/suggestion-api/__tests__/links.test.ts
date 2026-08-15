@@ -1,184 +1,117 @@
-import { buildGoogleMapsUrls } from '../src/links/google-maps.js';
+import { buildGoogleMapsUrls, isValidMapsUrl } from '../src/links/google-maps.js';
 
 /**
- * T037: Deep-link construction — listingUrl and fallbackUrl against contracts/deep-link.md.
+ * T037: Deep-link construction — `listingUrl` and `fallbackUrl` against `contracts/deep-link.md`.
  *
- * FR-023, FR-025: The response includes two URLs:
- * - `listingUrl`: Direct link to the restaurant's Google Maps listing (uses placeId)
- * - `fallbackUrl`: Fallback if the listing becomes unavailable (uses name + location)
+ * From the contract:
+ *   - listingUrl (steps 1–2):  https://www.google.com/maps/place/?q=place_id:<ID>
+ *   - fallbackUrl (step 3):    https://www.google.com/maps/search/?api=1&query=<name>&query_place_id=<ID>
  *
- * Both must be HTTPS, valid, and work on iOS and Android.
+ * Both are plain HTTPS web URLs — no `comgooglemaps://` or `geo:` scheme — so they work on iOS and
+ * Android without requiring the Maps app to be installed (FR-023, FR-025).
  */
 
 describe('Google Maps deep-link builder (FR-023, FR-025)', () => {
-  describe('buildGoogleMapsUrls', () => {
-    it('builds a valid listing URL using placeId', () => {
-      const placeId = 'ChIJN1blFLsB9ogR4oPg4Ym1G6w'; // Google's own HQ in Google Maps
-      const name = 'Google';
-      const lat = 37.422;
-      const lng = -122.084;
+  const placeId = 'ChIJN1blFLsB9ogR4oPg4Ym1G6w';
 
-      const { listingUrl, fallbackUrl } = buildGoogleMapsUrls({ placeId, name, lat, lng });
+  it('builds a listingUrl that resolves the specific place via place_id', () => {
+    const { listingUrl } = buildGoogleMapsUrls({ placeId, name: 'Google', lat: 37.422, lng: -122.084 });
 
-      // listingUrl should use the placeId (most direct)
-      expect(listingUrl).toContain('placeId=' + placeId);
-      expect(listingUrl).toMatch(/^https:\/\/maps\.google\.com\//);
-      expect(new URL(listingUrl)).not.toThrow(); // Valid URL
-
-      // fallbackUrl should use name + location
-      expect(fallbackUrl).toContain('Google');
-      expect(fallbackUrl).toMatch(/^https:\/\/maps\.google\.com\//);
-      expect(new URL(fallbackUrl)).not.toThrow();
-    });
-
-    it('includes query_builder=false to skip the edit dialog', () => {
-      const placeId = 'ChIJN1blFLsB9ogR4oPg4Ym1G6w';
-      const name = 'Test Restaurant';
-      const { listingUrl } = buildGoogleMapsUrls({ placeId, name, lat: 40.7128, lng: -74.006 });
-
-      // The listing URL should not trigger the "suggest an edit" dialog
-      // (implementation detail; verify from the contract)
-      expect(listingUrl).not.toContain('query_builder=true');
-    });
-
-    it('encodes name and location correctly in fallback URL', () => {
-      const placeId = 'ChIJN1blFLsB9ogR4oPg4Ym1G6w';
-      const name = "Joe's Pizza & Pasta"; // Has special characters
-      const lat = 40.7128;
-      const lng = -74.006;
-
-      const { fallbackUrl } = buildGoogleMapsUrls({ placeId, name, lat, lng });
-
-      // Name should be URL-encoded
-      expect(fallbackUrl).toContain(encodeURIComponent(name));
-      // Coordinates should be included for precision
-      expect(fallbackUrl).toContain(lat.toString());
-      expect(fallbackUrl).toContain(lng.toString());
-    });
-
-    it('handles placeId that becomes unavailable (fallback to name)', () => {
-      // Scenario: the placeId no longer exists, but we want to land on a similar result
-      const placeId = 'INVALID_OR_DELETED_ID';
-      const name = 'Pizza Place Downtown';
-      const lat = 40.7128;
-      const lng = -74.006;
-
-      const { listingUrl, fallbackUrl } = buildGoogleMapsUrls({ placeId, name, lat, lng });
-
-      // Both URLs should be valid and distinct
-      expect(listingUrl).toBeTruthy();
-      expect(fallbackUrl).toBeTruthy();
-      expect(listingUrl).not.toBe(fallbackUrl);
-
-      // User clicks listingUrl first; if that fails, they can try fallbackUrl
-      // (Implementation: app should catch HTTP 404 and redirect to fallbackUrl)
-    });
-
-    it('produces HTTPS URLs only (no http://)', () => {
-      const placeId = 'ChIJN1blFLsB9ogR4oPg4Ym1G6w';
-      const name = 'Test Restaurant';
-
-      const { listingUrl, fallbackUrl } = buildGoogleMapsUrls({
-        placeId,
-        name,
-        lat: 40.7128,
-        lng: -74.006,
-      });
-
-      expect(listingUrl).toMatch(/^https:\/\//);
-      expect(fallbackUrl).toMatch(/^https:\/\//);
-    });
-
-    it('includes coordinates in both URLs for precise lookup', () => {
-      const placeId = 'ChIJN1blFLsB9ogR4oPg4Ym1G6w';
-      const name = 'Test Restaurant';
-      const lat = 40.7128;
-      const lng = -74.006;
-
-      const { listingUrl, fallbackUrl } = buildGoogleMapsUrls({ placeId, name, lat, lng });
-
-      // Both should include lat/lng context
-      const listingUrlObj = new URL(listingUrl);
-      const fallbackUrlObj = new URL(fallbackUrl);
-
-      expect(listingUrlObj.search).toContain(lat.toString());
-      expect(listingUrlObj.search).toContain(lng.toString());
-
-      expect(fallbackUrlObj.search).toContain(lat.toString());
-      expect(fallbackUrlObj.search).toContain(lng.toString());
-    });
-
-    it('works on both iOS and Android (uses google.com/maps, not app-specific schemes)', () => {
-      const placeId = 'ChIJN1blFLsB9ogR4oPg4Ym1G6w';
-      const name = 'Test Restaurant';
-
-      const { listingUrl, fallbackUrl } = buildGoogleMapsUrls({
-        placeId,
-        name,
-        lat: 40.7128,
-        lng: -74.006,
-      });
-
-      // Both should be HTTPS web URLs, not google.com/maps or comgooglemaps:// schemes
-      // This ensures they work on any device without app installation
-      expect(listingUrl).toContain('maps.google.com');
-      expect(fallbackUrl).toContain('maps.google.com');
-      expect(listingUrl).not.toMatch(/^(geo:|comgooglemaps:)/);
-      expect(fallbackUrl).not.toMatch(/^(geo:|comgooglemaps:)/);
-    });
-
-    it('handles edge cases: very long name', () => {
-      const placeId = 'ChIJN1blFLsB9ogR4oPg4Ym1G6w';
-      const name = 'A'.repeat(200); // Very long name
-      const lat = 40.7128;
-      const lng = -74.006;
-
-      const { fallbackUrl } = buildGoogleMapsUrls({ placeId, name, lat, lng });
-
-      // URL should still be valid and not exceed typical URL length limits
-      expect(fallbackUrl.length).toBeLessThan(2000); // Typical browser limit
-      expect(new URL(fallbackUrl)).not.toThrow();
-    });
-
-    it('handles edge cases: coordinates at poles/date line', () => {
-      const placeId = 'ChIJN1blFLsB9ogR4oPg4Ym1G6w';
-      const name = 'Test Restaurant';
-
-      const testCases = [
-        { lat: 90, lng: 0 }, // North pole
-        { lat: -90, lng: 0 }, // South pole
-        { lat: 0, lng: 180 }, // Date line
-        { lat: 0, lng: -180 }, // Date line
-      ];
-
-      for (const { lat, lng } of testCases) {
-        const { listingUrl, fallbackUrl } = buildGoogleMapsUrls({ placeId, name, lat, lng });
-        expect(new URL(listingUrl)).not.toThrow();
-        expect(new URL(fallbackUrl)).not.toThrow();
-      }
-    });
+    expect(listingUrl).toMatch(/^https:\/\/www\.google\.com\/maps\/place\//);
+    expect(listingUrl).toContain(`q=place_id:${placeId}`);
+    expect(() => new URL(listingUrl)).not.toThrow();
   });
 
-  describe('Contract compliance (contracts/deep-link.md)', () => {
-    it('produces URLs matching the documented deep-link contract', () => {
-      // From contracts/deep-link.md:
-      // - listingUrl format: https://maps.google.com/?cid=<placeId>
-      // - fallbackUrl format: https://maps.google.com/search/<name>/@<lat>,<lng>
+  it('builds a fallbackUrl keyed by name and place_id, distinct from listingUrl', () => {
+    const name = "Joe's Pizza & Pasta";
+    const { listingUrl, fallbackUrl } = buildGoogleMapsUrls({ placeId, name, lat: 40.7128, lng: -74.006 });
 
-      const placeId = 'ChIJN1blFLsB9ogR4oPg4Ym1G6w';
-      const name = 'Test Restaurant';
-      const lat = 40.7128;
-      const lng = -74.006;
+    expect(fallbackUrl).toMatch(/^https:\/\/www\.google\.com\/maps\/search\/\?api=1/);
+    expect(fallbackUrl).toContain(`query=${encodeURIComponent(name)}`);
+    expect(fallbackUrl).toContain(`query_place_id=${placeId}`);
+    expect(fallbackUrl).not.toBe(listingUrl);
+  });
 
-      const { listingUrl, fallbackUrl } = buildGoogleMapsUrls({ placeId, name, lat, lng });
+  it('produces HTTPS-only URLs', () => {
+    const { listingUrl, fallbackUrl } = buildGoogleMapsUrls({
+      placeId,
+      name: 'Test Restaurant',
+      lat: 40.7128,
+      lng: -74.006,
+    });
 
-      // listingUrl uses placeId (most direct)
-      expect(listingUrl).toMatch(/maps\.google\.com/);
-      expect(listingUrl).toContain(placeId);
+    expect(listingUrl).toMatch(/^https:\/\//);
+    expect(fallbackUrl).toMatch(/^https:\/\//);
+  });
 
-      // fallbackUrl uses name + coordinates
-      expect(fallbackUrl).toMatch(/maps\.google\.com\/search/);
-      expect(fallbackUrl).toContain(encodeURIComponent(name));
+  it('works on iOS and Android via web URLs — no app-specific scheme', () => {
+    const { listingUrl, fallbackUrl } = buildGoogleMapsUrls({
+      placeId,
+      name: 'Test Restaurant',
+      lat: 40.7128,
+      lng: -74.006,
+    });
+
+    expect(listingUrl).not.toMatch(/^(geo:|comgooglemaps:)/);
+    expect(fallbackUrl).not.toMatch(/^(geo:|comgooglemaps:)/);
+  });
+
+  it('URL-encodes special characters in the restaurant name', () => {
+    const name = 'Café "Le Château" & Bar / Grill';
+    const { fallbackUrl } = buildGoogleMapsUrls({ placeId, name, lat: 40.7128, lng: -74.006 });
+
+    expect(fallbackUrl).toContain(encodeURIComponent(name));
+    expect(() => new URL(fallbackUrl)).not.toThrow();
+  });
+
+  it('keeps the fallback URL well under typical browser URL length limits for a long name', () => {
+    const name = 'A'.repeat(200);
+    const { fallbackUrl } = buildGoogleMapsUrls({ placeId, name, lat: 40.7128, lng: -74.006 });
+
+    expect(fallbackUrl.length).toBeLessThan(2000);
+    expect(() => new URL(fallbackUrl)).not.toThrow();
+  });
+
+  it('handles coordinates at the poles and the date line', () => {
+    const cases = [
+      { lat: 90, lng: 0 },
+      { lat: -90, lng: 0 },
+      { lat: 0, lng: 180 },
+      { lat: 0, lng: -180 },
+    ];
+
+    for (const { lat, lng } of cases) {
+      const { listingUrl, fallbackUrl } = buildGoogleMapsUrls({ placeId, name: 'Test', lat, lng });
+      expect(() => new URL(listingUrl)).not.toThrow();
+      expect(() => new URL(fallbackUrl)).not.toThrow();
+    }
+  });
+
+  it('rejects an out-of-range coordinate', () => {
+    expect(() => buildGoogleMapsUrls({ placeId, name: 'Test', lat: 95, lng: 0 })).toThrow();
+    expect(() => buildGoogleMapsUrls({ placeId, name: 'Test', lat: 0, lng: 200 })).toThrow();
+  });
+
+  it('rejects a missing placeId', () => {
+    expect(() => buildGoogleMapsUrls({ placeId: '', name: 'Test', lat: 0, lng: 0 })).toThrow();
+  });
+
+  describe('isValidMapsUrl', () => {
+    it('accepts an HTTPS google.com URL', () => {
+      const { listingUrl } = buildGoogleMapsUrls({ placeId, name: 'Test', lat: 0, lng: 0 });
+      expect(isValidMapsUrl(listingUrl)).toBe(true);
+    });
+
+    it('rejects a non-HTTPS URL', () => {
+      expect(isValidMapsUrl('http://www.google.com/maps/place/?q=place_id:x')).toBe(false);
+    });
+
+    it('rejects a non-google.com domain', () => {
+      expect(isValidMapsUrl('https://evil.example.com/maps')).toBe(false);
+    });
+
+    it('rejects a malformed URL', () => {
+      expect(isValidMapsUrl('not a url')).toBe(false);
     });
   });
 });

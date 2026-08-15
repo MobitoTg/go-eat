@@ -7,5 +7,6 @@
     "noEmit": true,
     "types": ["node", "jest"]
   },
-  "include": ["app/**/*", "src/**/*", "widgets/**/*", "__tests__/**/*", "*.ts", "*.tsx"]
+  "include": ["app/**/*", "src/**/*", "widgets/**/*", "__tests__/**/*", "*.ts", "*.tsx"],
+  "exclude": ["__tests__/integration/**"]
 }
