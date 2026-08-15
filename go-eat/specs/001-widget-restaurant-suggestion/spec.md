@@ -168,6 +168,7 @@ A new user installs Go-Eat, opens it once, is told plainly what the app does, gr
 - **FR-030**: The system MUST use exactly one restaurant data provider for v1.
 - **FR-031**: The system MUST use the user's location only to produce suggestions, and MUST NOT retain precise location history beyond what is required to serve the active suggestion cycle.
 - **FR-032**: Dietary preferences and exclusions MUST be scoped to the user's own device/installation and MUST NOT require an account to function.
+- **FR-041**: Third-party assets redistributed in the build — including the color palette — MUST carry their required license attribution, and their versions MUST be pinned so a dependency update cannot silently change shipped values.
 
 **Out of scope for v1**
 
@@ -191,16 +192,16 @@ A new user installs Go-Eat, opens it once, is told plainly what the app does, gr
 - **SC-002**: A user goes from seeing the suggestion to viewing that restaurant's listing in the maps service in a single tap, 100% of the time.
 - **SC-003**: A new user completes setup — permission granted, preferences set, widget installed — in under 2 minutes on first launch.
 - **SC-004**: The widget presents a current suggestion or an honest explanatory state 99% of the times it is viewed; it is never blank and never shows a suggestion presented as current when the underlying data is stale.
-- **SC-005**: Across a representative sample of test locations, at least 80% of surfaced suggestions meet the defined quality bar (established rating and review volume) and no more than 10% fall into low-effort fast-food categories.
+- **SC-005**: Across a representative sample of test locations, at least 80% of surfaced suggestions meet the quality bar — a rating of at least 4.0 from at least 25 reviews — and no more than 10% fall into low-effort fast-food categories, defined as the provider's fast-food and takeaway category types. Venues the provider gives no rating or review count are counted as not meeting the bar for this measurement, though they are not excluded from candidacy.
 - **SC-006**: Refreshing to the next option updates the displayed restaurant in under 1 second, with zero calls to the restaurant data provider during an active cycle.
 - **SC-007**: A suggestion cycle consumes exactly one restaurant-data-provider request regardless of how many times the user refreshes within it.
 - **SC-008**: Turning off the refresh capability produces a working single-suggestion widget with no changes to selection, presentation, or tap-through behavior, verified by the same Stories 1 and 2 acceptance tests passing unmodified.
 - **SC-009**: 0% of suggestions shown are permanently closed venues, closed-at-time-of-display venues, or venues conflicting with the user's stated dietary exclusions.
 - **SC-010**: Users report the suggestion as "somewhere I'd actually eat" in at least 70% of instances during post-MVP feedback collection.
 - **SC-011**: Adjusting a scoring weight measurably changes suggestion rankings across the test-location sample with no modification to selection logic.
+- **SC-012**: The full end-to-end experience — onboarding, permissions, widget rendering, refresh cycling, and tap-through — is exercisable on both iOS and Android simulators/emulators at every stage of development.
 - **SC-013**: Across repeated cycles at an identical location with identical preferences, the first-shown restaurant varies in at least 50% of cycles, while no venue scoring below the near-tie threshold of the top candidate is ever shown first.
 - **SC-014**: Given a fixed cycle seed, scoring and ordering are 100% reproducible across runs, so selection quality can be regression-tested despite the randomization.
-- **SC-012**: The full end-to-end experience — onboarding, permissions, widget rendering, refresh cycling, and tap-through — is exercisable on both iOS and Android simulators/emulators at every stage of development.
 - **SC-015**: 100% of semantic color pairings meet their contrast requirement in both themes, verified automatically on every change to the palette, the token map, or widget rendering, with ratios recomputed from the primitives rather than carried forward.
 - **SC-016**: All six widget states remain distinguishable from one another when the platform renders the widget desaturated to a single hue, where color carries no information.
 - **SC-017**: The widget remains legible over any wallpaper, verified against light, dark, and visually busy backdrops on both platforms.

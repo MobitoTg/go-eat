@@ -88,6 +88,35 @@ Unexplained movement blocks the change (Constitution: scoring regression gate).
 
 To verify a weight is not decorative (Constitution III), change it and confirm the report moves.
 
+The report is printed for humans; the thresholds are asserted separately and block the build:
+
+| Check | Spec |
+|---|---|
+| ≥ 80% of suggestions rated ≥ 4.0 with ≥ 25 reviews | SC-005 |
+| ≤ 10% in fast-food / takeaway category types | SC-005 |
+| First-shown venue varies across ≥ 50% of cycles | SC-013 |
+
+### Contrast gate (blocking)
+
+```bash
+npm run contrast:gate --workspace=packages/design-tokens
+```
+
+Recomputes every semantic pairing from the pinned Open Color primitives, for **both** themes, and
+asserts text ≥ 4.5:1, large/bold ≥ 3:1, and interactive or meaningful non-text boundaries ≥ 3:1. It
+also asserts that each ratio recorded in `specs/design-system/color-semantics.md` matches the
+computed value — recorded, never estimated (Constitution VI.5).
+
+**This gate blocks all widget UI work.** Widget rendering must not begin against an unverified token
+map. It runs in CI on every change; run it locally before touching color.
+
+```bash
+npm run tokens:generate      # regenerate iOS Asset Catalog + Android colors.xml from the map
+```
+
+Never hand-edit the generated platform color assets — they are outputs. A raw hex literal in
+component code is a build failure (VI.1).
+
 ---
 
 ## Tier 2 — Contract validation (no simulator)
@@ -167,6 +196,32 @@ browsing exists anywhere in the app (FR-028).
 
 Never acceptable in any of these: a blank widget, or stale data shown as current.
 
+### Scenario 7 — Themes, tinted rendering, and backdrop
+
+1. Toggle the system appearance between light and dark with the widget on screen.
+
+**Expect**: every state re-renders legibly. Dark is its own specified assignment, not an inversion
+of light (FR-039) — dark elevation reads as a surface step, not a hairline.
+
+2. On iOS 17+, switch the home screen to tinted/accented widget rendering.
+
+**Expect**: all six states remain distinguishable **with hue removed** — tinted mode desaturates to
+one system hue and keys off luminance only, so `status.danger` and `status.success` collapse to
+near-identical values. States must differ by shape, icon, or position (FR-038, SC-016). This is a
+distinct acceptance case, not a nice-to-have.
+
+3. Set a light wallpaper, a dark wallpaper, and a visually busy photo.
+
+**Expect**: the widget paints its own opaque `surface.base` and is equally legible over all three
+(FR-036, SC-017). Contrast is never computed against the wallpaper.
+
+4. Count the chromatic values on any single widget surface.
+
+**Expect**: at most three — one neutral ramp, one accent, one optional status color (FR-037).
+
+**Note on Android**: v1 uses the fixed Open Color palette on every Android version. The widget will
+not tint to the user's wallpaper, and that is the recorded decision (ADR-001), not a bug.
+
 ### Scenario 6 — Batch invalidation
 
 | Setup | Expect |
@@ -184,6 +239,9 @@ Never acceptable in any of these: a blank widget, or stale data shown as current
 | Widget may not get a fresh location fix without foregrounding the app | Spike in a dev build **on device** before polishing widget UI | R7 |
 | Places pricing/terms unconfirmed | Verify against Google's official pricing before provider code | R3 |
 | iOS and Android widgets are separate implementations | Confirm both render all six states identically from the same payload | R2 |
+| Widget illegible under iOS tinted rendering, where hue carries nothing | Scenario 7 step 2, as a distinct acceptance case | R11 |
+| Fixed palette means the Android widget will not match a themed home screen | Accepted and recorded in ADR-001; revisit only for surfaces that can resolve contrast at runtime | R10 |
+| Threshold values are starting points, not tuned answers | Revisit after the fixture report and first real usage; `nearTieThreshold` trades SC-005 against SC-013 | R12 |
 
 ---
 
@@ -191,7 +249,12 @@ Never acceptable in any of these: a blank widget, or stale data shown as current
 
 - [ ] Tier 1 and Tier 2 pass with no simulator required
 - [ ] Fixture report generated and reviewed
-- [ ] All six Tier 3 scenarios pass on **both** iOS Simulator and Android emulator
+- [ ] SC-005 quality bar and SC-013 variety rate asserted, not just printed
+- [ ] **Contrast gate passes for both themes** — blocking (SC-015, Constitution VI.5)
+- [ ] Platform color assets regenerated from the semantic map; no hand-edited color, no raw hex
+- [ ] All seven Tier 3 scenarios pass on **both** iOS Simulator and Android emulator
+- [ ] All six states distinguishable under iOS tinted rendering (SC-016)
+- [ ] Widget legible over light, dark, and busy wallpapers (SC-017)
 - [ ] `refreshEnabled: false` verified — Scenarios 1 and 2 pass unmodified (SC-008)
 - [ ] One backend call per cycle confirmed by network log (SC-007)
 - [ ] No blank widget reachable in any state

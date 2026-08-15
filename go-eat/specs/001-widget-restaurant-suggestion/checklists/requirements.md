@@ -31,7 +31,29 @@
 
 ## Notes
 
-**All items pass.** Validation completed in 2 iterations.
+**All items pass.** Validation completed in 3 iterations.
+
+### Iteration 3 — design system addendum (2026-08-14)
+
+Re-validated after the spec gained FR-034..FR-040 and SC-015..SC-017 from the color system
+addendum. All checklist items still pass, with three points worth recording:
+
+- **"No implementation details"** — FR-034..FR-040 name no library, framework, or file format. They
+  state properties (resolves to a semantic token, meets 4.5:1, paints its own backdrop). Open Color,
+  Asset Catalogs, and `colors.xml` appear only in plan/research/design-system, which is correct.
+- **"Success criteria are measurable"** — SC-015..SC-017 are measurable, and this iteration also
+  fixed SC-005, which had claimed a "defined quality bar" that was never defined. It now reads
+  ≥ 4.0 rating from ≥ 25 reviews with ≤ 10% fast-food/takeaway types.
+- **"Requirements are testable and unambiguous"** — FR-021's "changed materially enough" was
+  unresolvable until this iteration, because the threshold it depends on had no value anywhere. Now
+  fixed at 750 m (research R12).
+
+### Constitution alignment
+
+The spec is consistent with constitution v1.1.0. Principle VI traces to FR-034..FR-040 and
+SC-015..SC-017. The one conflict found during analysis — a hybrid Android dynamic-color decision
+that could not satisfy VI.5's blocking contrast gate — was resolved in favor of the principle by
+fixing the palette (ADR-001), not by weakening the gate.
 
 ### Clarifications resolved
 

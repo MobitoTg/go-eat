@@ -87,9 +87,10 @@ platform-imposed rather than chosen, and are recorded there for transparency.
    written — it validates the cost model and the caching/retention posture.
 2. **Widget location acquisition spike** (R7). Must be proven in a development build before widget
    UI is polished.
-3. **Android dynamic color ADR** (R10). Must be decided before the Android token generator is
-   written, because it determines whether neutrals resolve from the system palette or from Open
-   Color. Recommended: hybrid — dynamic neutrals and surfaces, fixed status colors.
+3. **Android dynamic color ADR** (R10). Resolved: fixed Open Color palette in v1, dynamic color
+   deferred. Recorded as an ADR because the hybrid alternative is intuitive and will be re-proposed
+   otherwise — it fails because surfaces are the reference side of every contrast pairing, and
+   RemoteViews widgets cannot resolve contrast at runtime.
 
 ## Project Structure
 
@@ -116,9 +117,11 @@ directly:
 
 ```text
 specs/design-system/
-├── color-primitives.json   # Open Color v1.9.1, pinned. The only place hex literals are allowed
-├── color-semantics.md      # Semantic token map, both themes, with recorded contrast ratios
-└── platform-mapping.md     # iOS Asset Catalog / Android colors.xml emission, tinted mode, ADR
+├── color-primitives.json              # Open Color v1.9.1, pinned. The only place hex is allowed
+├── color-semantics.md                 # Semantic token map, both themes, recorded ratios
+├── platform-mapping.md                # iOS Asset Catalog / Android colors.xml, tinted mode
+├── widget-state-tokens.md             # State → token-name mapping both widgets implement
+└── adr-001-android-dynamic-color.md   # Fixed palette for v1; why the hybrid fails
 ```
 
 ### Source Code (repository root)
@@ -147,6 +150,7 @@ packages/
 └── design-tokens/                 # PURE: semantic map → platform color assets
     ├── src/                       # primitives + semantic map as data; contrast math
     ├── generators/                # iOS Asset Catalog, Android colors.xml + values-night
+    ├── eslint-rules/              # no-raw-hex, no-primitive-reference
     └── __tests__/                 # the blocking contrast gate, both themes
 
 services/
@@ -156,6 +160,14 @@ services/
     │   ├── provider/              # Google Places adapter (the only place the key lives)
     │   └── config/                # scoring weights, thresholds, refreshEnabled
     └── __tests__/
+
+scripts/
+└── check-no-client-secrets.ts     # asserts the provider key never appears under apps/mobile/
+
+.github/workflows/
+└── ci.yml                         # lint, both Jest suites, and the blocking contrast gate
+
+THIRD_PARTY.md                     # Open Color MIT attribution (Principle VI.2)
 ```
 
 **Structure Decision**: Mobile + API. The split is forced by the constitution rather than chosen for

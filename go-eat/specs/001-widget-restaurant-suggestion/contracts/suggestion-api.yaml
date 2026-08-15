@@ -256,15 +256,21 @@ components:
           default: 5
         locationDriftThresholdMeters:
           type: number
-          description: Drift beyond this invalidates the active batch (FR-021).
+          default: 750
+          description: |
+            Drift beyond this invalidates the active batch (FR-021). This value is what
+            "changed materially enough" in FR-021 resolves to. Rationale in research R12.
         anchorFreshnessSeconds:
           type: number
+          default: 900
           description: Anchor older than this is stale; widget renders the stale state.
         batchTrustSeconds:
           type: number
+          default: 1800
           description: |
             After this, open/closed data is no longer trusted and the batch is invalidated
-            (FR-021), preventing a closed venue being shown as open.
+            (FR-021), preventing a closed venue being shown as open. MUST remain greater than
+            anchorFreshnessSeconds so the anchor goes stale before the batch expires.
 
     DietaryTag:
       type: string

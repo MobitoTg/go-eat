@@ -236,31 +236,44 @@ builds. Simulator/emulator testing still holds (SC-012) — the change is that `
 
 ---
 
-## R10. Android dynamic color (Material You) — DECIDED, hybrid
+## R10. Android dynamic color (Material You) — DECIDED, fixed palette for v1
 
-**Decision**: Hybrid. Neutrals and surfaces resolve from the system palette
-(`@android:color/system_neutral1_*`, `system_accent1_*`) on Android 12+; **status colors stay fixed
-Open Color in every case**. Open Color serves as the complete fallback below Android 12.
+**Decision**: Fixed Open Color palette on every Android version. Material You dynamic color is
+**not** adopted in v1. Emit `res/values/colors.xml` and `res/values-night/colors.xml` from the
+semantic map with no system-palette branch.
 
-**Rationale**: Android 12+ widgets are expected to adopt wallpaper-derived theming, and a widget
-that ignores it reads as foreign on the home screen — which matters more here than in most products,
-because the widget *is* the product (Principle I). But status meaning must not drift with the
-wallpaper: a "stale" or "all filtered" indicator whose hue is chosen by the user's background is no
-longer an indicator. Splitting the decision keeps the widget native-feeling where that is safe and
-deterministic where it is not.
+**Rationale — why the obvious hybrid does not work**: the appealing option is "dynamic neutrals and
+surfaces, fixed status colors." It fails, and it fails structurally rather than marginally:
 
-**Consequence for the contrast gate**: dynamic neutrals cannot be verified ahead of time, because
-the values come from the user's wallpaper at runtime. The gate therefore covers the fixed palette
-exhaustively, and the dynamic path is verified against the system palette's own contract plus a
-sampled set of wallpapers in integration testing. This is a genuine reduction in coverage and is the
-price of option (a); it is accepted because the alternative — a fixed widget on a themed home
-screen — is worse for the product's only surface.
+- **Surfaces are the reference side of every contrast pairing.** `text.primary` is verified *against*
+  `surface.base`. Making the surface wallpaper-derived does not leave most of the gate intact — it
+  invalidates every text and boundary ratio at once. There is no useful subset left to verify.
+- **The usual escape hatch is closed.** A normal app resolves the foreground at runtime, picking a
+  text color that meets 4.5:1 against whatever surface the system returned. That requires logic at
+  render time, and Android widgets are RemoteViews — they cannot run logic (R2). The one platform
+  that would need runtime contrast resolution is the one platform that cannot perform it.
 
-**Alternative rejected**: fixed palette everywhere. Simpler, and it would make the contrast gate
-exhaustive, but it produces a widget that visibly does not belong on an Android 12+ home screen.
+Constitution VI.5 makes the contrast gate blocking and requires verification in CI for both themes.
+A design whose verifiability depends on the user's wallpaper cannot satisfy it, and weakening the
+gate to accommodate the design would invert the relationship between the constitution and the work.
 
-**Source**: `specs/design-system/platform-mapping.md`, which frames the choice and recommends
-exactly this split.
+**What is given up**: on Android 12+, the widget will not tint itself to match the user's wallpaper,
+and will read as slightly foreign next to widgets that do. This is a real cost on the product's only
+surface (Principle I) and is accepted deliberately rather than overlooked.
+
+**What is gained**: the contrast gate is exhaustive rather than partial, both themes are fully
+specified and verified (FR-039), SC-015's 100% claim is actually achievable, and the Android
+generator loses an entire conditional branch.
+
+**Revisit when**: a surface exists that can resolve contrast at runtime — the React Native app
+screens already can, and a future Glance/Compose widget could. Dynamic color is a candidate for the
+app surfaces in a later release, not for the v1 widget.
+
+**Alternative rejected**: hybrid dynamic/fixed, for the reasons above. Recorded here because it is
+the intuitive choice and will be proposed again if the reasoning is not written down.
+
+**Source**: `specs/design-system/platform-mapping.md` frames the choice; the ADR (T013e) records
+this resolution.
 
 ---
 
@@ -288,6 +301,32 @@ unreachable and are deleted from the token set rather than generated (FR-040).
 
 ---
 
+## R12. Threshold starting values — DECIDED
+
+Five tunable values were declared as config fields with no value anywhere, which left FR-021
+("changed materially enough") and SC-005 ("the defined quality bar") untestable. These are starting
+points chosen to be defensible and adjustable, not final answers — every one is operator config
+(Principle III) and expected to move once the fixture report and real usage say something.
+
+| Value | Start | Rationale |
+|---|---:|---|
+| `nearTieThreshold` | `0.05` | 5% of the normalized 0–1 score range. Wide enough that 2–3 candidates typically tie in a dense area (so SC-013's variety materializes), narrow enough that a materially better venue is never displaced |
+| `minReviewCount` | `25` | Below this, confidence tempering dominates (FR-010). 25 is where a rating stops being a handful of opinions; also the review floor in SC-005's quality bar |
+| `locationDriftThresholdMeters` | `750` | Roughly a 10-minute walk. Beyond it the previous batch's distance labels are misleading and the candidate set has genuinely changed. Small enough to catch a drive, large enough that GPS jitter and normal indoor movement never invalidate a batch |
+| `anchorFreshnessSeconds` | `900` | 15 minutes. Past this the anchor is treated as stale and the widget renders the stale state rather than implying the distance is current |
+| `batchTrustSeconds` | `1800` | 30 minutes. The open/closed horizon — long enough to amortize one provider call across a meal decision, short enough that a venue closing partway through the cycle is not still being presented as open (FR-012) |
+| `searchRadiusMeters` | `1500` base | Adapts to venue density per the spec's assumption — tightened where results are plentiful, widened where sparse. Never user-visible (FR-003) |
+
+**Relationship worth preserving**: `batchTrustSeconds` (1800) > `anchorFreshnessSeconds` (900). The
+anchor goes stale before the batch expires, so the widget degrades to an honest stale state rather
+than jumping straight from "current" to a forced refetch.
+
+**Tuning note**: `nearTieThreshold` is the one value that directly trades off SC-005 (quality) against
+SC-013 (variety). Raising it increases variety and lowers average quality. Any change to it must
+report both metrics, not just one.
+
+---
+
 ## Resolved unknowns summary
 
 | # | Unknown | Status |
@@ -301,8 +340,9 @@ unreachable and are deleted from the token set rather than generated (FR-040).
 | R7 | Widget location access | Resolved by design; **spike required** |
 | R8 | Deep linking | Resolved — place ID with fallback chain |
 | R9 | Testing strategy | Resolved — three tiers |
-| R10 | Android dynamic color | Resolved — hybrid: dynamic neutrals, fixed status colors |
+| R10 | Android dynamic color | Resolved — fixed palette in v1; dynamic color deferred |
 | R11 | iOS tinted widget rendering | Resolved — hue is never the sole signal; distinct test case |
+| R12 | Threshold starting values | Resolved — five config values set with rationale |
 
 **Carried into implementation as gates**: Places pricing/terms verification (R3), the widget
 location spike (R7), and the Android dynamic-color ADR (R10) before the Android token generator.

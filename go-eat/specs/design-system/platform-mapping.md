@@ -39,6 +39,19 @@ A minimalist widget usually wants (a) for neutrals and surfaces and
 (b) for status colors, since status meaning must not drift with the
 wallpaper.
 
+> **RESOLVED for v1 — (b), fixed palette. See ADR-001.**
+> The split above is the intuitive answer and it does not hold here.
+> Surfaces are the reference side of every contrast pairing, so a
+> wallpaper-derived `surface.base` invalidates every text and
+> boundary ratio rather than a subset — there is no verifiable
+> remainder. The normal remedy, resolving the foreground at runtime
+> against the actual surface, needs logic at render time, and
+> RemoteViews widgets cannot run logic. Constitution VI.5 makes the
+> contrast gate blocking, so v1 holds Open Color in both cases and
+> accepts that the widget will not tint to the wallpaper.
+> Revisit for surfaces that CAN resolve contrast at runtime — the
+> React Native app screens already can.
+
 RemoteViews supports a restricted view/attribute set. Confirm each
 token's target attribute is settable via RemoteViews before
 specifying it.

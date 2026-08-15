@@ -30,9 +30,11 @@ Source of derived content:
 Deferred TODOs:
   - TODO(BRAND_IDENTITY_COLOR): VI.2 prohibits Open Color as the product's brand identity
     color. No brand color has been chosen. Not blocking v1; blocks any brand-facing surface.
-  - TODO(ANDROID_DYNAMIC_COLOR_ADR): VI and platform-mapping.md require an explicit ADR
-    choosing dynamic-first vs fixed-palette. Recorded as research R10; the recommended hybrid
-    is dynamic neutrals/surfaces with fixed status colors.
+  - RESOLVED(ANDROID_DYNAMIC_COLOR_ADR): decided as fixed Open Color palette for v1, with
+    Material You dynamic color deferred. The intuitive hybrid — dynamic neutrals and surfaces,
+    fixed status colors — cannot satisfy VI.5, because surfaces are the reference side of every
+    contrast pairing and RemoteViews widgets cannot resolve contrast at runtime. Recorded in
+    research R10 and ADR-001.
 -->
 
 # Go-Eat Constitution

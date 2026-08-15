@@ -53,10 +53,14 @@ not enough to reconstruct a movement trail (Principle V).
 
 **Derived predicates** (pure, in `apps/mobile/src/cycle`):
 
-- `isStale(anchor, now)` → `capturedAt` older than the freshness window.
-- `hasDrifted(anchor, current)` → distance exceeds the drift threshold; triggers FR-021 invalidation.
+- `isStale(anchor, now)` → `capturedAt` older than `anchorFreshnessSeconds` (start: `900`).
+- `hasDrifted(anchor, current)` → distance exceeds `locationDriftThresholdMeters` (start: `750`);
+  triggers FR-021 invalidation. This is what "changed materially enough" in FR-021 resolves to.
 
-Both thresholds are config, not literals, so they are tunable alongside scoring weights.
+Both thresholds are config, not literals, so they are tunable alongside scoring weights. Rationale
+in research.md R12. Note `batchTrustSeconds` (start: `1800`) is deliberately longer than
+`anchorFreshnessSeconds`, so the anchor goes stale — and the widget says so — before the batch
+expires and forces a refetch.
 
 ---
 
@@ -94,15 +98,19 @@ zero. Absent data must not be punished as though it were bad data.
 
 Backend config. The whole of Principle III lives here.
 
-| Field | Type | Purpose |
-|---|---|---|
-| `rating` | `number` | Weight on normalized rating |
-| `reviewVolume` | `number` | Weight on confidence from review count |
-| `healthLean` | `Record<placeType, number>` | Per-type adjustment (FR-007) |
-| `distance` | `number` | Weight on distance decay |
-| `nearTieThreshold` | `number` | Score band treated as tied (FR-022) |
-| `searchRadiusMeters` | `number` | Provider query radius; never user-visible (FR-003) |
-| `minReviewCount` | `number` | Floor below which confidence tempering dominates |
+| Field | Type | Start | Purpose |
+|---|---|---:|---|
+| `rating` | `number` | — | Weight on normalized rating |
+| `reviewVolume` | `number` | — | Weight on confidence from review count |
+| `healthLean` | `Record<placeType, number>` | — | Per-type adjustment (FR-007) |
+| `distance` | `number` | — | Weight on distance decay |
+| `nearTieThreshold` | `number` | `0.05` | Score band treated as tied (FR-022) |
+| `searchRadiusMeters` | `number` | `1500` | Provider query radius; never user-visible (FR-003) |
+| `minReviewCount` | `number` | `25` | Floor below which confidence tempering dominates |
+
+Starting values and their rationale are recorded in research.md R12. The four relative weights are
+deliberately left unset here — they are established by tuning against the golden fixtures (T072),
+not chosen up front.
 
 **Hard constraints**:
 
@@ -204,6 +212,11 @@ is a compile error, not a blank widget.
 `no_results` and `all_filtered` are deliberately distinct: "nothing good here" and "your filters
 removed everything" call for different user actions, and collapsing them would strand a user who
 could fix the problem in settings.
+
+**How a state becomes pixels**: each state maps to semantic **token names** — never color values —
+via `specs/design-system/widget-state-tokens.md`, which both widget implementations follow so they
+cannot drift. States must also differ by shape, icon, or position, because iOS tinted rendering
+strips hue entirely and would otherwise collapse them (FR-038, research R11).
 
 ---
 
