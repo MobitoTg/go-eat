@@ -236,6 +236,58 @@ builds. Simulator/emulator testing still holds (SC-012) — the change is that `
 
 ---
 
+## R10. Android dynamic color (Material You) — DECIDED, hybrid
+
+**Decision**: Hybrid. Neutrals and surfaces resolve from the system palette
+(`@android:color/system_neutral1_*`, `system_accent1_*`) on Android 12+; **status colors stay fixed
+Open Color in every case**. Open Color serves as the complete fallback below Android 12.
+
+**Rationale**: Android 12+ widgets are expected to adopt wallpaper-derived theming, and a widget
+that ignores it reads as foreign on the home screen — which matters more here than in most products,
+because the widget *is* the product (Principle I). But status meaning must not drift with the
+wallpaper: a "stale" or "all filtered" indicator whose hue is chosen by the user's background is no
+longer an indicator. Splitting the decision keeps the widget native-feeling where that is safe and
+deterministic where it is not.
+
+**Consequence for the contrast gate**: dynamic neutrals cannot be verified ahead of time, because
+the values come from the user's wallpaper at runtime. The gate therefore covers the fixed palette
+exhaustively, and the dynamic path is verified against the system palette's own contract plus a
+sampled set of wallpapers in integration testing. This is a genuine reduction in coverage and is the
+price of option (a); it is accepted because the alternative — a fixed widget on a themed home
+screen — is worse for the product's only surface.
+
+**Alternative rejected**: fixed palette everywhere. Simpler, and it would make the contrast gate
+exhaustive, but it produces a widget that visibly does not belong on an Android 12+ home screen.
+
+**Source**: `specs/design-system/platform-mapping.md`, which frames the choice and recommends
+exactly this split.
+
+---
+
+## R11. iOS tinted widget rendering — DECIDED, adds an acceptance case
+
+**Decision**: Treat tinted rendering as a first-class state of the widget, not a degraded one. Use
+`.widgetAccentable()` deliberately to choose which layer joins the accent group.
+
+**Finding that constrains the design**: iOS 18 tinted/accented rendering desaturates the widget to a
+single system-derived hue and keys off **luminance only**. `status.danger` (red-8) and
+`status.success` (teal-9) collapse to near-identical values under it.
+
+**Design consequence**: hue can never be the sole carrier of meaning. Every widget state must differ
+in shape, icon, or position as well as color (FR-038). This is a constraint the product would want
+regardless — it is also what makes the states legible to colorblind users — but tinted mode makes it
+non-optional rather than a nicety.
+
+**Testing consequence**: tinted mode is a distinct acceptance case, verified separately from
+standard rendering (SC-016).
+
+**Also settled here**: widgets are static snapshots, so hover, focus, and pressed color variants are
+unreachable and are deleted from the token set rather than generated (FR-040).
+
+**Source**: `specs/design-system/platform-mapping.md`.
+
+---
+
 ## Resolved unknowns summary
 
 | # | Unknown | Status |
@@ -249,6 +301,11 @@ builds. Simulator/emulator testing still holds (SC-012) — the change is that `
 | R7 | Widget location access | Resolved by design; **spike required** |
 | R8 | Deep linking | Resolved — place ID with fallback chain |
 | R9 | Testing strategy | Resolved — three tiers |
+| R10 | Android dynamic color | Resolved — hybrid: dynamic neutrals, fixed status colors |
+| R11 | iOS tinted widget rendering | Resolved — hue is never the sole signal; distinct test case |
 
 **Carried into implementation as gates**: Places pricing/terms verification (R3), the widget
-location spike (R7).
+location spike (R7), and the Android dynamic-color ADR (R10) before the Android token generator.
+
+**Open decisions not blocking implementation**: a brand identity color has not been chosen, and
+Constitution VI.2 forbids using Open Color for it. Needed only when a brand-facing surface exists.

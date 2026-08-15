@@ -114,6 +114,16 @@ A new user installs Go-Eat, opens it once, is told plainly what the app does, gr
 - **FR-004**: The widget MUST render a distinct, non-suggestion state for each of: location permission not granted, no qualifying results, all results excluded by user preferences, and stale/offline data.
 - **FR-005**: The widget MUST render its current state without requiring the user to open the Go-Eat app.
 
+**Visual design and legibility**
+
+- **FR-034**: All color in the widget and the app MUST resolve to a semantic token defined by the design system. Raw color literals in component code MUST fail the build, and components MUST NOT reference palette primitives directly.
+- **FR-035**: Every color pairing MUST meet contrast minimums — 4.5:1 for text, 3:1 for large or bold text, and 3:1 for interactive and meaningful non-text boundaries — verified independently for both light and dark themes.
+- **FR-036**: The widget MUST paint its own opaque base surface. It MUST NOT rely on the device wallpaper or any assumed backdrop for contrast.
+- **FR-037**: Any single widget surface MUST render at most three chromatic values: one neutral ramp, one accent, and one optional status color.
+- **FR-038**: The widget's states MUST be distinguishable without relying on hue. Each state MUST differ in shape, icon, or position as well as color, so states remain distinguishable when the platform desaturates the widget to a single hue and keys only off luminance.
+- **FR-039**: Light and dark themes MUST each carry an independently specified and independently verified color assignment. Dark MUST NOT be derived by inverting the light assignment.
+- **FR-040**: The widget MUST NOT define hover, focus, or pressed color states. Widgets render as static snapshots and such states are unreachable.
+
 **Suggestion selection**
 
 - **FR-006**: The system MUST select suggestions using a scoring model that combines, at minimum, rating, review volume, cuisine type, and distance. Distance MUST NOT be the sole determinant.
@@ -191,6 +201,9 @@ A new user installs Go-Eat, opens it once, is told plainly what the app does, gr
 - **SC-013**: Across repeated cycles at an identical location with identical preferences, the first-shown restaurant varies in at least 50% of cycles, while no venue scoring below the near-tie threshold of the top candidate is ever shown first.
 - **SC-014**: Given a fixed cycle seed, scoring and ordering are 100% reproducible across runs, so selection quality can be regression-tested despite the randomization.
 - **SC-012**: The full end-to-end experience — onboarding, permissions, widget rendering, refresh cycling, and tap-through — is exercisable on both iOS and Android simulators/emulators at every stage of development.
+- **SC-015**: 100% of semantic color pairings meet their contrast requirement in both themes, verified automatically on every change to the palette, the token map, or widget rendering, with ratios recomputed from the primitives rather than carried forward.
+- **SC-016**: All six widget states remain distinguishable from one another when the platform renders the widget desaturated to a single hue, where color carries no information.
+- **SC-017**: The widget remains legible over any wallpaper, verified against light, dark, and visually busy backdrops on both platforms.
 
 ## Assumptions
 
@@ -209,3 +222,5 @@ A new user installs Go-Eat, opens it once, is told plainly what the app does, gr
 - **Variety without history**: Freshness comes from seeded randomization among near-tied candidates rather than from suppressing previously seen venues, so the product keeps its "no history, no tracking" posture. The near-tie threshold is a tunable value alongside the scoring weights, and a stationary user may still encounter repeats.
 - **Cold-start behavior**: On first widget render before any cycle has completed, the widget shows a brief loading state rather than a placeholder restaurant.
 - **Test coordinates**: Selection quality is validated against a fixed set of representative coordinates (dense urban, suburban, sparse rural) so scoring changes are measurable and regressions are detectable.
+- **Design system scope**: Color is governed by a two-layer token system — pinned Open Color primitives resolved through a semantic token map — specified in `specs/design-system/`. For v1 the design system covers color only; typography, spacing, and iconography are not yet specified and are chosen per-surface within the color constraints.
+- **Theme is an OS concern**: Light/dark selection is made by the operating system and resolved natively at render time from platform-generated token assets. No color or theme information travels in the widget payload, so the payload stays purely informational.

@@ -1,26 +1,38 @@
 <!--
 SYNC IMPACT REPORT
 ==================
-Version change: (none) → 1.0.0
-Rationale: Initial ratification. The prior file was the unmodified scaffold with no
-project-specific values, so this is a first adoption rather than an amendment.
+Version change: 1.0.0 → 1.1.0
+Rationale: MINOR. A new Core Principle (VI. Color Is a Contract, Not a Choice) is added and
+the quality gates are materially expanded with a contrast gate. No existing principle is
+removed, renamed, or redefined, so no MAJOR bump is warranted.
 
-Modified principles: none (no prior principles existed)
+Modified principles: none renamed or redefined.
 
 Added sections:
-  - Core Principles I–V (all newly authored)
-  - Product & Platform Constraints
-  - Development Workflow & Quality Gates
-  - Governance
+  - Core Principle VI. Color Is a Contract, Not a Choice (clauses VI.1–VI.7)
+  - Contrast gate paragraph under Development Workflow & Quality Gates
+  - Color review check added to the existing review-checks list
+  - Both-themes and tinted-mode conditions added to Definition of done
 
 Removed sections: none
 
 Source of derived content:
-  No user input was supplied with this command. All principles were inferred from
-  specs/001-widget-restaurant-suggestion/spec.md, the only project context present in
-  the repository. Principles trace to spec requirements as noted in each section.
+  User-supplied addendum at .specify/memory/constitution-addeundum.md ("Article VII — Color
+  System"). Content preserved verbatim in substance. Two adjustments were required to make it
+  consistent with this document:
+    1. Renumbered Article VII → Principle VI. This constitution numbers Core Principles I–V;
+       an "Article VII" implied Articles I–VI that do not exist.
+    2. Corrected the color-semantics path. The addendum cited
+       specs/design-system/color-semantics.md while the file sat under feature 001's
+       contracts/. The design-system files were moved to specs/design-system/ so that
+       project-wide design law does not depend on one feature's directory.
 
-Deferred TODOs: none. RATIFICATION_DATE set to the adoption date of this document.
+Deferred TODOs:
+  - TODO(BRAND_IDENTITY_COLOR): VI.2 prohibits Open Color as the product's brand identity
+    color. No brand color has been chosen. Not blocking v1; blocks any brand-facing surface.
+  - TODO(ANDROID_DYNAMIC_COLOR_ADR): VI and platform-mapping.md require an explicit ADR
+    choosing dynamic-first vs fixed-palette. Recorded as research R10; the recommended hybrid
+    is dynamic neutrals/surfaces with fixed status colors.
 -->
 
 # Go-Eat Constitution
@@ -104,6 +116,42 @@ The product reads the user's location to answer one question and then lets it go
 That trade is only defensible if the data genuinely does not accumulate, and the cheapest way to
 guarantee that is to build so there is nowhere for it to accumulate. Traces to FR-022a, FR-031, FR-032.
 
+### VI. Color Is a Contract, Not a Choice
+
+**VI.1 Single source of truth**: All color MUST resolve to a semantic token defined in
+`specs/design-system/color-semantics.md`. Raw hex literals in component code are a build failure.
+Primitives (Open Color) are referenced ONLY by the semantic layer, never by a component.
+
+**VI.2 Palette provenance**: Primitives are Open Color v1.9.1 (MIT, yeun/open-color), pinned.
+Upstream states that colors may change between versions; a version bump therefore requires
+re-running the contrast gate (VI.5) before merge. Open Color MUST NOT be used as the product's
+brand identity color.
+
+**VI.3 Two-layer token architecture**: Layer 1 (primitive) is `oc.<hue>.<0-9>` — immutable, no
+semantics. Layer 2 (semantic) is `color.<role>.<variant>` — theme-aware, and the only layer
+components may reference. There is no third layer and there are no component-scoped color tokens.
+
+**VI.4 Minimalist constraint**: Any single widget surface renders at most THREE chromatic values:
+one neutral ramp, one accent, one optional status color. A fourth requires an explicit ADR.
+
+**VI.5 Contrast gate (blocking)**: Text MUST meet 4.5:1. Large or bold text MUST meet 3:1.
+Interactive and meaningful non-text boundaries MUST meet 3:1. Verified in CI for BOTH themes
+against the semantic map. Ratios are recorded, not estimated.
+
+**VI.6 Widget backdrop rule**: A widget cannot assume its backdrop. Every widget MUST paint its own
+opaque base surface, or opt into the platform material and derive text from that material's own
+vibrancy roles. Contrast is never computed against the wallpaper.
+
+**VI.7 Theme steps are not mirrored**: Dark theme MUST NOT be derived by inverting step indices.
+Each theme has an independently specified and independently verified step assignment.
+
+**Rationale**: The widget is the entire product surface (I), and it renders over an unknown
+wallpaper, in two themes, on two platforms, in native code that must be written twice (research R2).
+Color decided per-component under those conditions is not a matter of taste — it is a legibility
+failure waiting to ship, and it would have to be re-litigated in Swift and again in Kotlin. A
+recorded, CI-gated token map turns contrast into a build-time property instead of a per-component
+judgment call. Traces to Principle I, FR-002, FR-004, SC-001.
+
 ## Product & Platform Constraints
 
 **Single provider**: v1 MUST use exactly one maps/places provider for restaurant data, ratings,
@@ -143,13 +191,18 @@ representative coordinates covering dense urban, suburban, and sparse rural cond
 touching scoring, weights, or candidate assembly MUST report its effect on that sample. Unexplained
 movement blocks the change.
 
+**Contrast gate**: Any change touching the semantic token map, the primitive palette, or widget
+rendering MUST run the contrast gate for both themes. Recorded ratios MUST be recomputed from the
+primitives, never copied forward from a previous revision. A failing ratio blocks the change.
+
 **Review checks**: A change MUST be rejected if it introduces a user-facing choice (II), a hardcoded
 venue list (III), unseeded randomness in selection (IV), retained location or suggestion history (V),
-a second data provider, or a provider call per refresh.
+a raw hex literal or a component referencing a primitive directly (VI), a second data provider, or a
+provider call per refresh.
 
 **Definition of done**: A feature is done when its acceptance scenarios pass, it runs in both
-simulators, its failure states render honestly, and no requirement it touches has been left
-contradicted elsewhere in the spec.
+simulators, it renders legibly in both themes and in iOS tinted mode, its failure states render
+honestly, and no requirement it touches has been left contradicted elsewhere in the spec.
 
 ## Governance
 
@@ -173,4 +226,4 @@ review checks above. Complexity that appears to violate a principle MUST be just
 the plan's complexity tracking, naming the principle and the reason no simpler approach suffices.
 An unjustified violation blocks the work.
 
-**Version**: 1.0.0 | **Ratified**: 2026-08-14 | **Last Amended**: 2026-08-14
+**Version**: 1.1.0 | **Ratified**: 2026-08-14 | **Last Amended**: 2026-08-14

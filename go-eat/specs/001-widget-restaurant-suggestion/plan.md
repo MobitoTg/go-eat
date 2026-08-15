@@ -34,6 +34,7 @@ backend is stateless per request.
 
 **Testing**: Jest (pure logic + contract tests, Node, no simulator). Maestro or Detox for
 integration flows on iOS Simulator and Android emulator. Golden-fixture suite for scoring regression.
+Blocking contrast gate over the semantic token map, both themes, in CI (Principle VI.5).
 
 **Target Platform**: iOS 17+ (App Intent–driven widget refresh), Android 12+ (Glance/RemoteViews).
 Backend on any Node host.
@@ -63,6 +64,7 @@ presentation (FR-019). Everything exercisable in simulator/emulator (SC-012).
 | III. Tunable Models, Not Hardcoded Rules | Weights external and adjustable without a client release; no name lists | PASS | PASS — weights served from backend config (R5); `selection-core` takes weights as an argument |
 | IV. Deterministic, Simulator-Verifiable | Seeded randomness, injectable inputs, scoring assertable separately | PASS | PASS — `selection-core` is pure and IO-free; seed is an explicit parameter; golden fixtures (R9) |
 | V. Location Is Borrowed, Not Kept | No retained location or suggestion history; no accounts; no client-side keys | PASS | PASS — stateless backend, device-local storage, provider key server-side only |
+| VI. Color Is a Contract, Not a Choice | Semantic tokens only; contrast gated in CI for both themes; widget paints its own backdrop | PASS | PASS — `design-tokens` generates platform assets from one recorded map (R10); contrast gate runs in Jest; no color in the payload |
 
 **Product & Platform Constraints check**
 
@@ -79,12 +81,15 @@ presentation (FR-019). Everything exercisable in simulator/emulator (SC-012).
 **Result: PASS.** No violations requiring justification. Two items in Complexity Tracking are
 platform-imposed rather than chosen, and are recorded there for transparency.
 
-**Two gates carried into implementation** (neither blocks Phase 1 design):
+**Three gates carried into implementation** (none blocks Phase 1 design):
 
 1. **Places API pricing and terms unverified** (R3). Must be confirmed before provider code is
    written — it validates the cost model and the caching/retention posture.
 2. **Widget location acquisition spike** (R7). Must be proven in a development build before widget
    UI is polished.
+3. **Android dynamic color ADR** (R10). Must be decided before the Android token generator is
+   written, because it determines whether neutrals resolve from the system palette or from Open
+   Color. Recommended: hybrid — dynamic neutrals and surfaces, fixed status colors.
 
 ## Project Structure
 
@@ -103,7 +108,17 @@ specs/001-widget-restaurant-suggestion/
 │   └── deep-link.md
 ├── checklists/
 │   └── requirements.md
-└── tasks.md             # Phase 2 output (/speckit-tasks — NOT created here)
+└── tasks.md             # Phase 2 output (/speckit-tasks)
+```
+
+Design law lives outside this feature, because it outlives it and the constitution references it
+directly:
+
+```text
+specs/design-system/
+├── color-primitives.json   # Open Color v1.9.1, pinned. The only place hex literals are allowed
+├── color-semantics.md      # Semantic token map, both themes, with recorded contrast ratios
+└── platform-mapping.md     # iOS Asset Catalog / Android colors.xml emission, tinted mode, ADR
 ```
 
 ### Source Code (repository root)
@@ -128,7 +143,11 @@ packages/
 ├── selection-core/                # PURE: scoring, near-tie shuffle, ordering. No IO.
 │   ├── src/
 │   └── __tests__/                 # golden fixtures live here
-└── contract-types/                # shared payload types, generated from contracts/
+├── contract-types/                # shared payload types, generated from contracts/
+└── design-tokens/                 # PURE: semantic map → platform color assets
+    ├── src/                       # primitives + semantic map as data; contrast math
+    ├── generators/                # iOS Asset Catalog, Android colors.xml + values-night
+    └── __tests__/                 # the blocking contrast gate, both themes
 
 services/
 └── suggestion-api/                # stateless backend
@@ -150,6 +169,17 @@ simulator, no network, and no provider key.
 `apps/mobile/widgets/ios` and `apps/mobile/widgets/android` are parallel implementations by
 necessity (R2), not by preference. Both are render-only. Any logic appearing in either directory is
 a design failure, because it must then be written and tested twice.
+
+`packages/design-tokens` exists for the same reason as `selection-core`: it is the second place
+where a constitutional rule becomes mechanically enforceable rather than aspirational. It holds the
+semantic map as data, computes contrast from the primitives, and **generates** the iOS Asset Catalog
+Color Sets and Android `colors.xml` / `values-night/colors.xml` at build time. Nothing hand-writes a
+color on either platform, so the R2 duplication tax does not extend to the palette — the two widgets
+duplicate layout, never values. Primitives never ship to either bundle; only semantic tokens do.
+
+**Where color does not go**: not into the widget payload. Theme is selected by the OS and resolved
+natively from the generated assets at render time, so `contracts/widget-payload.md` stays purely
+informational. The payload carries the *state*; the platform carries the *appearance*.
 
 ## Complexity Tracking
 
